@@ -1,0 +1,909 @@
+{
+  "sh515220": {
+    "code": "sh515220",
+    "name": "煤炭ETF国泰",
+    "type": "etf",
+    "ratingManual": null,
+    "reason": "防御型配置，逆势上涨中但短期回调",
+    "notes": "所有ETF中评分最高，红利属性强",
+    "analysis": [
+      {
+        "type": "green",
+        "text": "近一月+12.48%，逆势上涨，防御属性强"
+      },
+      {
+        "type": "green",
+        "text": "今年+16.73%，红利+周期双驱动"
+      },
+      {
+        "type": "red",
+        "text": "近一周-3.04%，短期有回调压力"
+      }
+    ],
+    "etf": {
+      "nav": 1.1993,
+      "scale": "112.79亿",
+      "weekChange": -3.04,
+      "monthChange": 12.48,
+      "ytdChange": 16.73,
+      "yearReturn": 14.27,
+      "holdings": "中证煤炭成份股，煤炭龙头集中持仓",
+      "qdii": false
+    },
+    "reviewedAt": "2026-07-31",
+    "riskOk": null
+  },
+  "sh513330": {
+    "code": "sh513330",
+    "name": "恒生互联网ETF华夏",
+    "type": "etf",
+    "ratingManual": null,
+    "reason": "港股互联网逆势反弹最强，但趋势未反转",
+    "notes": "腾讯/阿里/网易权重超40%",
+    "analysis": [
+      {
+        "type": "green",
+        "text": "近一月+14.5%，反弹力度最强"
+      },
+      {
+        "type": "green",
+        "text": "近一周+4.35%，动量向上"
+      },
+      {
+        "type": "red",
+        "text": "今年-22.25%，仍在下降趋势中"
+      }
+    ],
+    "etf": {
+      "nav": 0.4028,
+      "scale": "254.86亿",
+      "weekChange": 4.35,
+      "monthChange": 14.5,
+      "ytdChange": -22.25,
+      "yearReturn": -21.92,
+      "holdings": "腾讯15.9% 阿里12.6% 网易12.2% 美团9.5% 小米8.7%",
+      "qdii": true
+    },
+    "reviewedAt": "2026-07-31",
+    "riskOk": null
+  },
+  "sz159740": {
+    "code": "sz159740",
+    "name": "恒生科技ETF大成",
+    "type": "etf",
+    "ratingManual": null,
+    "reason": "港股科技企稳反弹中，但趋势尚未反转",
+    "notes": "等站上20日线+连续2周不创新低",
+    "analysis": [
+      {
+        "type": "green",
+        "text": "近一月+7.0%，持续反弹"
+      },
+      {
+        "type": "red",
+        "text": "今年-16.35%，仍在大级别下降趋势"
+      },
+      {
+        "type": "red",
+        "text": "中芯国际9.7%权重，半导体成份股利空多"
+      }
+    ],
+    "etf": {
+      "nav": 0.6036,
+      "scale": "162.48亿",
+      "weekChange": 2.18,
+      "monthChange": 7,
+      "ytdChange": -16.35,
+      "yearReturn": -17.11,
+      "holdings": "中芯国际9.7% 网易9.1% 腾讯7.9% 美团7.1% 比亚迪6.7%",
+      "qdii": true
+    },
+    "reviewedAt": "2026-07-31",
+    "riskOk": null
+  },
+  "sh513090": {
+    "code": "sh513090",
+    "name": "香港证券ETF易方达",
+    "type": "etf",
+    "ratingManual": null,
+    "reason": "券商板块相对抗跌，但动量走弱",
+    "notes": "看市场成交量能否放大",
+    "analysis": [
+      {
+        "type": "green",
+        "text": "近一月+3.19%，券商板块相对抗跌"
+      },
+      {
+        "type": "red",
+        "text": "今年-9.54%，近一年-19.31%"
+      },
+      {
+        "type": "red",
+        "text": "近一周-2.55%，动量走弱"
+      }
+    ],
+    "etf": {
+      "nav": 1.8511,
+      "scale": "189.75亿",
+      "weekChange": -2.55,
+      "monthChange": 3.19,
+      "ytdChange": -9.54,
+      "yearReturn": -19.31,
+      "holdings": "中信证券14.5% 港交所13.4% 国泰海通12.1% 中金11.6%",
+      "qdii": false
+    },
+    "reviewedAt": "2026-07-31",
+    "riskOk": null
+  },
+  "sz300502": {
+    "code": "sz300502",
+    "name": "新易盛",
+    "type": "stock",
+    "ratingManual": null,
+    "reason": "暴跌后左侧反弹（7/28跌17%、7/30跌16%）",
+    "notes": "个股中评分最高，等站上20日线再看",
+    "analysis": [
+      {
+        "type": "green",
+        "text": "利空排查通过，无直接减持"
+      },
+      {
+        "type": "green",
+        "text": "H1净利预增77%~103%，业绩能见度好"
+      },
+      {
+        "type": "green",
+        "text": "委比+76%，买盘最强"
+      },
+      {
+        "type": "red",
+        "text": "PE 54x / PB 30x，估值极高"
+      },
+      {
+        "type": "red",
+        "text": "融资余额5天减60亿，杠杆资金撤退"
+      },
+      {
+        "type": "red",
+        "text": "20日线下方，左侧反弹非右侧确认"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": true
+  },
+  "sh603629": {
+    "code": "sh603629",
+    "name": "利通电子",
+    "type": "stock",
+    "ratingManual": null,
+    "reason": "左侧反弹",
+    "notes": "业绩+利空最干净的标的，但仍是左侧",
+    "analysis": [
+      {
+        "type": "green",
+        "text": "H1预增1172%~1368%，业绩爆表"
+      },
+      {
+        "type": "green",
+        "text": "高管减持已届满结束(7/21)"
+      },
+      {
+        "type": "green",
+        "text": "委比100%，涨停封死"
+      },
+      {
+        "type": "red",
+        "text": "资产负债率75.1%偏高"
+      },
+      {
+        "type": "red",
+        "text": "20日线下方(-19.26%)，左侧反弹"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": true
+  },
+  "sz002916": {
+    "code": "sz002916",
+    "name": "深南电路",
+    "type": "stock",
+    "ratingManual": null,
+    "reason": "涨停+左侧反弹，20日跌幅-32%",
+    "notes": "利空通过但左侧太深",
+    "analysis": [
+      {
+        "type": "green",
+        "text": "利空排查通过"
+      },
+      {
+        "type": "red",
+        "text": "PE 58x，估值偏高"
+      },
+      {
+        "type": "red",
+        "text": "委比-10%，涨停封板不牢"
+      },
+      {
+        "type": "red",
+        "text": "20日跌幅-32%，深度左侧"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": true
+  },
+  "sz159300": {
+    "code": "sz159300",
+    "name": "沪深300ETF富国",
+    "type": "etf",
+    "ratingManual": null,
+    "reason": "宽基ETF，相对稳健",
+    "notes": "规模偏小(8.94亿)",
+    "analysis": [
+      {
+        "type": "green",
+        "text": "今年+0.82%，近一年年化+13.88%"
+      },
+      {
+        "type": "red",
+        "text": "近一月-8.11%，跟随大盘回调"
+      },
+      {
+        "type": "red",
+        "text": "成份股含中际旭创/新易盛等暴跌股"
+      }
+    ],
+    "etf": {
+      "nav": 4.933,
+      "scale": "8.94亿",
+      "weekChange": -3.54,
+      "monthChange": -8.11,
+      "ytdChange": 0.82,
+      "yearReturn": 13.88,
+      "holdings": "中际旭创4.9% 宁德时代3.6% 新易盛2.9% 茅台2.6%",
+      "qdii": false
+    },
+    "reviewedAt": "2026-07-31",
+    "riskOk": null
+  },
+  "sz159330": {
+    "code": "sz159330",
+    "name": "沪深300ETF东财",
+    "type": "etf",
+    "ratingManual": null,
+    "reason": "宽基ETF，今年持平",
+    "notes": "规模太小，流动性差",
+    "analysis": [
+      {
+        "type": "green",
+        "text": "今年基本持平(+0.05%)"
+      },
+      {
+        "type": "red",
+        "text": "近一月-8.15%，规模仅4.87亿"
+      }
+    ],
+    "etf": {
+      "nav": 1.4217,
+      "scale": "4.87亿",
+      "weekChange": -3.7,
+      "monthChange": -8.15,
+      "ytdChange": 0.05,
+      "yearReturn": 12.47,
+      "holdings": "中际旭创4.9% 宁德时代3.6% 新易盛3.0% 茅台2.6%",
+      "qdii": false
+    },
+    "reviewedAt": "2026-07-31",
+    "riskOk": null
+  },
+  "sz300408": {
+    "code": "sz300408",
+    "name": "三环集团",
+    "type": "stock",
+    "ratingManual": null,
+    "reason": "左侧反弹，持有不加仓",
+    "notes": "用户持仓，不加仓不卖出",
+    "analysis": [
+      {
+        "type": "green",
+        "text": "利空排查通过"
+      },
+      {
+        "type": "green",
+        "text": "委比+58%，买盘较强"
+      },
+      {
+        "type": "red",
+        "text": "PE 80x，估值偏高"
+      },
+      {
+        "type": "red",
+        "text": "20日线下方(-20%)，左侧"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": true
+  },
+  "sh588000": {
+    "code": "sh588000",
+    "name": "科创50ETF华夏",
+    "type": "etf",
+    "ratingManual": null,
+    "reason": "科创板科技含量高，近期暴跌中",
+    "notes": "等数据补充和科技板块企稳",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "科创板半导体/AI含量高，近期科技暴跌"
+      },
+      {
+        "type": "red",
+        "text": "数据缺失，无法判断趋势"
+      }
+    ],
+    "etf": {
+      "nav": 1.676,
+      "scale": "超百亿",
+      "weekChange": null,
+      "monthChange": null,
+      "ytdChange": null,
+      "yearReturn": null,
+      "holdings": "科创板核心50只成份股",
+      "qdii": false
+    },
+    "reviewedAt": "2026-07-31",
+    "riskOk": null
+  },
+  "sz159659": {
+    "code": "sz159659",
+    "name": "纳斯达克100ETF招商",
+    "type": "etf",
+    "ratingManual": null,
+    "reason": "美股科技调整中",
+    "notes": "英伟达/美光/AMD合计17%权重",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "近一周-6.27%，美股科技调整中"
+      },
+      {
+        "type": "red",
+        "text": "近一月-9.03%，趋势走弱"
+      },
+      {
+        "type": "green",
+        "text": "今年+4.06%，相对抗跌"
+      }
+    ],
+    "etf": {
+      "nav": 1.9881,
+      "scale": "99.36亿",
+      "weekChange": -6.27,
+      "monthChange": -9.03,
+      "ytdChange": 4.06,
+      "yearReturn": 10.81,
+      "holdings": "英伟达7.5% 苹果6.6% 美光5.6% 微软4.3% AMD 4.1%",
+      "qdii": true
+    },
+    "reviewedAt": "2026-07-31",
+    "riskOk": null
+  },
+  "sh562500": {
+    "code": "sh562500",
+    "name": "机器人ETF华夏",
+    "type": "etf",
+    "ratingManual": null,
+    "reason": "机器人板块持续下跌",
+    "notes": "等机器人产业订单/政策催化",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "今年-11.4%，表现较差"
+      },
+      {
+        "type": "red",
+        "text": "近一月-21.33%，暴跌中"
+      },
+      {
+        "type": "red",
+        "text": "近一周-5.55%，仍在下跌"
+      }
+    ],
+    "etf": {
+      "nav": 0.9022,
+      "scale": "174.44亿",
+      "weekChange": -5.55,
+      "monthChange": -21.33,
+      "ytdChange": -11.4,
+      "yearReturn": 1.53,
+      "holdings": "大族激光10.6% 汇川技术9.0% 三花智控8.4% 科大讯飞6.7%",
+      "qdii": false
+    },
+    "reviewedAt": "2026-07-31",
+    "riskOk": null
+  },
+  "sh515050": {
+    "code": "sh515050",
+    "name": "5G通信ETF华夏",
+    "type": "etf",
+    "ratingManual": "排除",
+    "reason": "成份股利空叠加+暴跌趋势",
+    "notes": "趋势完全破坏",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "近一月-36.7%，暴跌中"
+      },
+      {
+        "type": "red",
+        "text": "成份股新易盛/兆易创新/中际旭创全部有利空"
+      }
+    ],
+    "etf": {
+      "nav": 0.8831,
+      "scale": "249.91亿",
+      "weekChange": -16.37,
+      "monthChange": -36.7,
+      "ytdChange": 16.49,
+      "yearReturn": 90,
+      "holdings": "新易盛9.9% 兆易创新9.9% 中际旭创9.3% 立讯精密6.6%",
+      "qdii": false
+    },
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  },
+  "sh513310": {
+    "code": "sh513310",
+    "name": "中韩半导体ETF华泰柏瑞",
+    "type": "etf",
+    "ratingManual": "排除",
+    "reason": "半导体板块暴跌+成份股利空",
+    "notes": "波动极大",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "近一月-36.73%，暴跌中"
+      },
+      {
+        "type": "red",
+        "text": "成份股兆易创新/寒武纪有利空"
+      }
+    ],
+    "etf": {
+      "nav": 3.7068,
+      "scale": "134.65亿",
+      "weekChange": -19.04,
+      "monthChange": -36.73,
+      "ytdChange": 46.03,
+      "yearReturn": 118.07,
+      "holdings": "海力士15.8% 三星12.5% 兆易创新8.5% 寒武纪7.9%",
+      "qdii": true
+    },
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  },
+  "sh562590": {
+    "code": "sh562590",
+    "name": "半导体设备ETF华夏",
+    "type": "etf",
+    "ratingManual": "排除",
+    "reason": "成份股大基金减持+暴跌趋势",
+    "notes": "等半导体设备板块企稳",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "近一月-33.06%，暴跌中"
+      },
+      {
+        "type": "red",
+        "text": "成份股北方华创/长川科技大基金减持"
+      }
+    ],
+    "etf": {
+      "nav": 0.9236,
+      "scale": "83.19亿",
+      "weekChange": -9.11,
+      "monthChange": -33.06,
+      "ytdChange": 71.42,
+      "yearReturn": 137.23,
+      "holdings": "中微公司15.1% 北方华创13.4% 长川科技6.6% 拓荆科技6.3%",
+      "qdii": false
+    },
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  },
+  "sz002156": {
+    "code": "sz002156",
+    "name": "通富微电",
+    "type": "stock",
+    "ratingManual": "排除",
+    "reason": "大基金减持",
+    "notes": "用户持仓，建议卖出",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "大基金减持进行中"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  },
+  "sh600584": {
+    "code": "sh600584",
+    "name": "长电科技",
+    "type": "stock",
+    "ratingManual": "排除",
+    "reason": "大基金减持",
+    "notes": "之前建议1成买入，后发现减持利空已修正",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "大基金Q1减358万股"
+      },
+      {
+        "type": "red",
+        "text": "计划再减1%"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  },
+  "sz002463": {
+    "code": "sz002463",
+    "name": "沪电股份",
+    "type": "stock",
+    "ratingManual": "排除",
+    "reason": "股东减持+机构抛售+财务存疑",
+    "notes": "之前误标首选，确认偏误导致漏查利空",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "股东翁伟文/卢美玲7/16起减持138万股"
+      },
+      {
+        "type": "red",
+        "text": "近10日主力净流出57.61亿"
+      },
+      {
+        "type": "red",
+        "text": "投资收益与营业利润此增彼减，疑似平滑利润"
+      },
+      {
+        "type": "red",
+        "text": "成本管控恶化，营收支出比增长192%"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  },
+  "sz300604": {
+    "code": "sz300604",
+    "name": "长川科技",
+    "type": "stock",
+    "ratingManual": "排除",
+    "reason": "大基金减持",
+    "notes": "",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "大基金减持"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  },
+  "sz002371": {
+    "code": "sz002371",
+    "name": "北方华创",
+    "type": "stock",
+    "ratingManual": "排除",
+    "reason": "大基金减持",
+    "notes": "",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "大基金减持"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  },
+  "sz002409": {
+    "code": "sz002409",
+    "name": "雅克科技",
+    "type": "stock",
+    "ratingManual": "排除",
+    "reason": "大基金减持",
+    "notes": "",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "大基金减持"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  },
+  "sz300394": {
+    "code": "sz300394",
+    "name": "天孚通信",
+    "type": "stock",
+    "ratingManual": "排除",
+    "reason": "股东套现",
+    "notes": "",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "控股股东+前二大股东合计转让套现13亿"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  },
+  "sz000636": {
+    "code": "sz000636",
+    "name": "风华高科",
+    "type": "stock",
+    "ratingManual": "排除",
+    "reason": "基金减持",
+    "notes": "",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "先进制造基金二期减持至5%以下"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  },
+  "sh688256": {
+    "code": "sh688256",
+    "name": "寒武纪",
+    "type": "stock",
+    "ratingManual": "排除",
+    "reason": "PE 233x极高",
+    "notes": "",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "PE 233x，估值极高"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  },
+  "sh688041": {
+    "code": "sh688041",
+    "name": "海光信息",
+    "type": "stock",
+    "ratingManual": "排除",
+    "reason": "PE 233x极高",
+    "notes": "",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "PE 233x，估值极高"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  },
+  "sh688981": {
+    "code": "sh688981",
+    "name": "中芯国际",
+    "type": "stock",
+    "ratingManual": "排除",
+    "reason": "PE 208x极高",
+    "notes": "",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "PE 208x，估值极高"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  },
+  "sz300480": {
+    "code": "sz300480",
+    "name": "光力科技",
+    "type": "stock",
+    "ratingManual": "排除",
+    "reason": "利空排除",
+    "notes": "用户提供的标的",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "待补充具体利空信息"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  },
+  "sz300442": {
+    "code": "sz300442",
+    "name": "润泽科技",
+    "type": "stock",
+    "ratingManual": "排除",
+    "reason": "股东减持进行中",
+    "notes": "算力租赁概念排查标的",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "宁波大容明琛减持中(6/24-9/21)"
+      },
+      {
+        "type": "red",
+        "text": "委比-34%卖压明显"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  },
+  "sz300308": {
+    "code": "sz300308",
+    "name": "中际旭创",
+    "type": "stock",
+    "ratingManual": "排除",
+    "reason": "7月暴跌+推荐失误案例",
+    "notes": "教训案例：确认偏误+择时纪律缺失",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "7/29推荐951元建仓，次日跌至820元(-13.45%)"
+      },
+      {
+        "type": "red",
+        "text": "5个红灯全亮仍喊买入"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  },
+  "sz301308": {
+    "code": "sz301308",
+    "name": "江波龙",
+    "type": "stock",
+    "ratingManual": "排除",
+    "reason": "股东大幅套现",
+    "notes": "",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "董事李志雄套现13.83亿"
+      },
+      {
+        "type": "red",
+        "text": "副总朱宇减持中"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  },
+  "sh603986": {
+    "code": "sh603986",
+    "name": "兆易创新",
+    "type": "stock",
+    "ratingManual": "排除",
+    "reason": "实控人套现",
+    "notes": "",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "实控人朱一明套现44亿"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  },
+  "sz000815": {
+    "code": "sz000815",
+    "name": "美利云",
+    "type": "stock",
+    "ratingManual": "排除",
+    "reason": "大股东破产+概念存疑",
+    "notes": "算力租赁概念排查标的",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "大股东中冶纸业/北京兴诚旺破产重整"
+      },
+      {
+        "type": "red",
+        "text": "32%股权全部质押+司法冻结"
+      },
+      {
+        "type": "red",
+        "text": "2025年营收-62.4%"
+      },
+      {
+        "type": "red",
+        "text": "PE 135x"
+      },
+      {
+        "type": "red",
+        "text": "公告称暂未提供算力，概念存疑"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  },
+  "sz301396": {
+    "code": "sz301396",
+    "name": "宏景科技",
+    "type": "stock",
+    "ratingManual": "排除",
+    "reason": "PE 957x+财务操纵嫌疑",
+    "notes": "算力租赁概念排查标的",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "PE 957x，极度泡沫化"
+      },
+      {
+        "type": "red",
+        "text": "投资收益与营业利润此增彼减，疑似操纵利润"
+      },
+      {
+        "type": "red",
+        "text": "6/24机构净卖出20.81亿"
+      },
+      {
+        "type": "red",
+        "text": "货币资金3年无法覆盖债务"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  },
+  "sh600536": {
+    "code": "sh600536",
+    "name": "中国软件",
+    "type": "stock",
+    "ratingManual": "排除",
+    "reason": "亏损+政府采购禁令",
+    "notes": "信创概念，但基本面实质性恶化",
+    "analysis": [
+      {
+        "type": "red",
+        "text": "上半年预亏1200~1440万，连续亏损"
+      },
+      {
+        "type": "red",
+        "text": "6/12被财政部处罚：禁止参加政府采购一年"
+      },
+      {
+        "type": "red",
+        "text": "党政核心应用占67%收入，禁令直接打击主营"
+      },
+      {
+        "type": "red",
+        "text": "PE为负，无法估值"
+      }
+    ],
+    "etf": null,
+    "reviewedAt": "2026-07-31",
+    "riskOk": false
+  }
+}
