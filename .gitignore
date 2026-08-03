@@ -15,3 +15,8 @@ frontend/dist/
 *.log
 .idea/
 .vscode/
+
+# Vite scaffold leftovers
+frontend/src/assets/
+frontend/src/components/
+frontend/public/icons.svg
