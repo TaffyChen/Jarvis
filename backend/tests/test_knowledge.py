@@ -8,7 +8,9 @@ from app.capabilities.knowledge import (
     list_kb_documents,
     preview_kb_chunks,
     save_kb_document,
+    upload_kb_document,
 )
+from app.infra.kb_extract import extract_markdown, md_path_for_upload
 from app.config import settings
 from app.infra.kb_chunk import chunk_markdown
 from app.infra.kb_search import keyword_rank, rrf_fuse
@@ -82,6 +84,55 @@ def test_kb_document_crud(isolated_kb):
         save_kb_document("../escape.md", "x")
     delete_kb_document("试验规则.md")
     assert list_kb_documents() == []
+
+
+def test_extract_common_formats():
+    assert "只做纪律" in extract_markdown("a.txt", "只做纪律说明。".encode("utf-8"))
+    html = "<html><body><h1>五灯</h1><p>红灯越多仓位越低。</p></body></html>".encode("utf-8")
+    md = extract_markdown("rules.html", html)
+    assert "五灯" in md and "仓位" in md
+    csv_md = extract_markdown("t.csv", "灯,上限\n0,8成\n".encode("utf-8"))
+    assert "8成" in csv_md
+    assert md_path_for_upload("我的 研报.PDF") == "我的_研报.md"
+
+
+def test_upload_txt_and_reject_unknown(isolated_kb):
+    r = upload_kb_document(filename="自定义纪律.txt", data="主升第一天才能加仓。".encode("utf-8"))
+    assert r["path"] == "自定义纪律.md"
+    assert "主升第一天" in get_kb_document(r["path"])["content"]
+    with pytest.raises(FileExistsError):
+        upload_kb_document(filename="自定义纪律.txt", data="另一份".encode("utf-8"))
+    again = upload_kb_document(filename="自定义纪律.txt", data="覆盖后的正文。".encode("utf-8"), overwrite=True)
+    assert "覆盖后" in get_kb_document(again["path"])["content"]
+    with pytest.raises(ValueError):
+        upload_kb_document(filename="x.exe", data=b"MZ")
+
+
+def test_upload_docx_xlsx(isolated_kb):
+    from io import BytesIO
+
+    from docx import Document
+    from openpyxl import Workbook
+
+    doc = Document()
+    doc.add_heading("持仓预警", level=1)
+    doc.add_paragraph("破20日线要复核。")
+    buf = BytesIO()
+    doc.save(buf)
+    r = upload_kb_document(filename="预警.docx", data=buf.getvalue())
+    text = get_kb_document(r["path"])["content"]
+    assert "持仓预警" in text and "破20日线" in text
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "仓位"
+    ws.append(["红灯", "上限"])
+    ws.append([3, "1成"])
+    xbuf = BytesIO()
+    wb.save(xbuf)
+    xr = upload_kb_document(filename="仓位表.xlsx", data=xbuf.getvalue())
+    xt = get_kb_document(xr["path"])["content"]
+    assert "1成" in xt
 
 
 def test_collect_chunks_reads_markdown(isolated_kb):

@@ -56,6 +56,12 @@ export const api = {
   kbDocument: (path) => http.get('/jarvis/kb/document', { params: { path } }).then((r) => r.data),
   saveKbDocument: (path, content, create = false) =>
     http.put('/jarvis/kb/document', { path, content, create }).then((r) => r.data),
+  uploadKbDocument: (file, overwrite = false) => {
+    const body = new FormData()
+    body.append('file', file)
+    body.append('overwrite', overwrite ? 'true' : 'false')
+    return http.post('/jarvis/kb/upload', body).then((r) => r.data)
+  },
   deleteKbDocument: (path) =>
     http.delete('/jarvis/kb/document', { params: { path } }).then((r) => r.data),
   previewKb: (body) => http.post('/jarvis/kb/preview', body).then((r) => r.data),

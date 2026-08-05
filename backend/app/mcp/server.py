@@ -158,6 +158,24 @@ def save_kb_document(path: str, content: str, create: bool = False) -> str:
 
 
 @mcp.tool()
+def upload_kb_document(
+    filename: str = "",
+    content_base64: str = "",
+    source_path: str = "",
+    overwrite: bool = False,
+) -> str:
+    """【写入】上传本地文件到知识库。支持 md/txt/pdf/docx/xlsx/html/csv，抽成 Markdown。优先 source_path，或传 filename+content_base64。"""
+    kwargs: dict[str, Any] = {"overwrite": overwrite}
+    if filename:
+        kwargs["filename"] = filename
+    if content_base64:
+        kwargs["content_base64"] = content_base64
+    if source_path:
+        kwargs["source_path"] = source_path
+    return _json(invoke("upload_kb_document", **kwargs))
+
+
+@mcp.tool()
 def delete_kb_document(path: str) -> str:
     """【写入】删除 knowledge 下的 Markdown。"""
     return _json(invoke("delete_kb_document", path=path))

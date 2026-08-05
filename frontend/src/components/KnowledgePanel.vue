@@ -5,7 +5,7 @@
         <div>
           <h3>知识库维护</h3>
           <div class="muted">
-            原文在 <code>knowledge/</code> · 切块「标题路径 + 窗口 overlap」· 检索「向量 + 关键词 RRF + rerank」
+            原文在 <code>knowledge/</code> · 可上传 md / txt / pdf / docx / xlsx / html / csv（抽成 Markdown）· 切块「标题路径 + overlap」
           </div>
         </div>
         <div class="kb-actions">
@@ -44,7 +44,19 @@
       <aside class="panel-card kb-list">
         <div class="kb-list-head">
           <h3>文档</h3>
-          <button class="btn btn-sm btn-primary" @click="startCreate">新建</button>
+          <div class="kb-actions">
+            <input
+              ref="fileInput"
+              class="kb-file-input"
+              type="file"
+              :accept="acceptTypes"
+              @change="onPickFile"
+            />
+            <button class="btn btn-sm" :disabled="uploading" @click="pickFile">
+              {{ uploading ? '上传中…' : '上传' }}
+            </button>
+            <button class="btn btn-sm btn-primary" @click="startCreate">新建</button>
+          </div>
         </div>
         <button
           v-for="doc in documents"
@@ -55,7 +67,7 @@
           <div class="kb-doc-name">{{ doc.path }}</div>
           <div class="muted">{{ formatSize(doc.bytes) }} · {{ formatTime(doc.updatedAt) }}</div>
         </button>
-        <div v-if="!documents.length" class="empty">暂无 Markdown</div>
+        <div v-if="!documents.length" class="empty">暂无文档，可新建或上传</div>
       </aside>
 
       <section class="panel-card kb-editor">
@@ -88,7 +100,7 @@
             </div>
           </div>
         </template>
-        <div v-else class="empty">选择左侧文档，或新建一篇纪律说明。</div>
+        <div v-else class="empty">选择左侧文档，或新建 / 上传一篇纪律说明。</div>
       </section>
     </div>
   </div>
@@ -103,9 +115,11 @@ import { useAuthStore } from '../stores/auth'
 const auth = useAuthStore()
 const loading = ref(false)
 const saving = ref(false)
+const uploading = ref(false)
 const reindexing = ref(false)
 const previewing = ref(false)
 const searching = ref(false)
+const fileInput = ref(null)
 const info = ref({})
 const documents = ref([])
 const currentPath = ref('')
@@ -120,6 +134,9 @@ const dirtyPath = ref('')
 
 const dirty = computed(() => content.value !== savedContent.value)
 const canReindex = computed(() => auth.can('kb.reindex'))
+const acceptTypes = computed(() => (info.value.upload?.extensions || [
+  '.md', '.markdown', '.txt', '.pdf', '.docx', '.xlsx', '.html', '.csv', '.tsv',
+]).join(','))
 const embedLabel = computed(() => {
   const e = info.value.embedding || {}
   return `${e.backend || '--'}${e.model ? ' / ' + e.model : ''} · ${e.dim || '--'}d`
@@ -173,6 +190,46 @@ async function openDoc(path) {
     dirtyPath.value = ''
   } catch (e) {
     ElMessage.error('打开失败：' + (e.response?.data?.detail || e.message || e))
+  }
+}
+
+function pickFile() {
+  fileInput.value?.click()
+}
+
+async function onPickFile(ev) {
+  const file = ev.target.files?.[0]
+  ev.target.value = ''
+  if (!file) return
+  await uploadFile(file, false)
+}
+
+async function uploadFile(file, overwrite) {
+  uploading.value = true
+  try {
+    const r = await api.uploadKbDocument(file, overwrite)
+    await reload()
+    if (r.path) await openDoc(r.path)
+    ElMessage.success(`已抽取为 ${r.path}，请检查正文后重建索引`)
+  } catch (e) {
+    const status = e.response?.status
+    const detail = e.response?.data?.detail || e.message || e
+    if (status === 409) {
+      try {
+        await ElMessageBox.confirm(`${detail}，是否覆盖同名 Markdown？`, '文件已存在', {
+          confirmButtonText: '覆盖',
+          cancelButtonText: '取消',
+          type: 'warning',
+        })
+      } catch {
+        return
+      }
+      await uploadFile(file, true)
+      return
+    }
+    ElMessage.error('上传失败：' + detail)
+  } finally {
+    uploading.value = false
   }
 }
 
@@ -319,6 +376,7 @@ onMounted(reload)
   display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px;
 }
 .kb-list-head h3, .kb-editor-head h3 { margin: 0; font-size: 15px; color: var(--bright); }
+.kb-file-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
 .kb-doc {
   display: block; width: 100%; text-align: left;
   border: 1px solid transparent; background: transparent; color: inherit;

@@ -11,6 +11,7 @@ from app.capabilities.knowledge import (
     preview_kb_chunks,
     reindex_knowledge,
     save_kb_document,
+    upload_kb_document,
 )
 from app.capabilities.mutate import (
     add_code,
@@ -49,6 +50,7 @@ CALLABLES: dict[str, Callable[..., Any]] = {
     "list_kb_documents": list_kb_documents,
     "get_kb_document": get_kb_document,
     "save_kb_document": save_kb_document,
+    "upload_kb_document": upload_kb_document,
     "delete_kb_document": delete_kb_document,
     "preview_kb_chunks": preview_kb_chunks,
     "kb_overview": kb_overview,
@@ -162,6 +164,18 @@ CAPABILITY_META: list[dict[str, Any]] = [
         "kind": "write",
         "summary": "新建或覆盖 knowledge 下的 Markdown",
         "params": {"path": "str", "content": "str", "create": "bool?"},
+        "hitl_recommended": True,
+    },
+    {
+        "name": "upload_kb_document",
+        "kind": "write",
+        "summary": "上传 md/txt/pdf/docx/xlsx/html/csv，抽成 Markdown 入库",
+        "params": {
+            "filename": "str?",
+            "content_base64": "str?",
+            "source_path": "str?",
+            "overwrite": "bool?",
+        },
         "hitl_recommended": True,
     },
     {

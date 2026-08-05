@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     rerank_api_key: str = ""
     rerank_model: str = "BAAI/bge-reranker-v2-m3"
     rag_candidate_k: int = 12
+    kb_upload_max_mb: int = 8
 
     mysql_host: str = ""
     mysql_port: int = 3307

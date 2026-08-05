@@ -1,12 +1,14 @@
 """知识库文档维护（读写 knowledge/*.md）。"""
 from __future__ import annotations
 
+import base64
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from app.config import settings
 from app.infra.kb_chunk import chunk_markdown
+from app.infra.kb_extract import SUPPORTED_UPLOAD_EXTS, extract_markdown, md_path_for_upload
 from app.infra.local_kb import collect_chunks, kb_info, rebuild_all
 
 
@@ -47,6 +49,42 @@ def get_kb_document(path: str) -> dict[str, Any]:
         raise FileNotFoundError(path)
     text = p.read_text(encoding="utf-8")
     return {"path": path.replace("\\", "/"), "content": text, "bytes": len(text.encode("utf-8"))}
+
+
+def upload_kb_document(
+    filename: str = "",
+    data: bytes | None = None,
+    content_base64: str | None = None,
+    source_path: str = "",
+    overwrite: bool = False,
+) -> dict[str, Any]:
+    """上传通用文件，抽成 Markdown 后写入 knowledge/。"""
+    raw = data
+    name = (filename or "").strip()
+    if source_path:
+        src = Path(source_path).expanduser().resolve()
+        if not src.is_file():
+            raise ValueError("源文件不存在")
+        raw = src.read_bytes()
+        name = name or src.name
+    elif content_base64:
+        try:
+            raw = base64.b64decode(content_base64, validate=False)
+        except Exception as exc:
+            raise ValueError("content_base64 无效") from exc
+    if raw is None:
+        raise ValueError("需要文件内容、content_base64 或 source_path")
+    if not name:
+        raise ValueError("需要文件名")
+    limit = max(1, int(settings.kb_upload_max_mb or 8)) * 1024 * 1024
+    if len(raw) > limit:
+        raise ValueError(f"文件超过 {settings.kb_upload_max_mb}MB 上限")
+    markdown = extract_markdown(name, raw)
+    rel = md_path_for_upload(name)
+    result = save_kb_document(rel, markdown, create=not overwrite)
+    result["originalName"] = Path(name).name
+    result["extractedChars"] = len(markdown)
+    return result
 
 
 def save_kb_document(path: str, content: str, *, create: bool = False) -> dict[str, Any]:
@@ -95,6 +133,10 @@ def kb_overview() -> dict[str, Any]:
     info["needsReindex"] = bool(
         indexed_at and any((d.get("updatedAt") or "") > indexed_at for d in docs)
     ) or not info.get("ready")
+    info["upload"] = {
+        "maxMb": int(settings.kb_upload_max_mb or 8),
+        "extensions": list(SUPPORTED_UPLOAD_EXTS),
+    }
     return info
 
 

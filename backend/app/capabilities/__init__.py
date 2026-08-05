@@ -37,6 +37,7 @@ from app.capabilities.knowledge import (
     preview_kb_chunks,
     reindex_knowledge,
     save_kb_document,
+    upload_kb_document,
 )
 from app.capabilities.mutate import (
     add_code,
@@ -79,6 +80,7 @@ __all__ = [
     "list_kb_documents",
     "get_kb_document",
     "save_kb_document",
+    "upload_kb_document",
     "delete_kb_document",
     "preview_kb_chunks",
     "kb_overview",

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import asyncio
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -19,6 +19,7 @@ from app.capabilities.knowledge import (
     preview_kb_chunks,
     reindex_knowledge,
     save_kb_document,
+    upload_kb_document,
 )
 from app.domain.memory import list_memories
 from app.infra.market.service import market
@@ -138,6 +139,24 @@ async def kb_document(path: str = Query(min_length=1), _user=Depends(require_per
 async def kb_save(body: KbDocIn, _user=Depends(require_perm("kb.manage"))):
     try:
         return save_kb_document(body.path, body.content, create=body.create)
+    except Exception as e:
+        _kb_error(e)
+
+
+@router.post("/kb/upload")
+async def kb_upload(
+    file: UploadFile = File(...),
+    overwrite: bool = Form(False),
+    _user=Depends(require_perm("kb.manage")),
+):
+    try:
+        data = await file.read()
+        return await asyncio.to_thread(
+            upload_kb_document,
+            filename=file.filename or "",
+            data=data,
+            overwrite=overwrite,
+        )
     except Exception as e:
         _kb_error(e)
 

@@ -25,7 +25,7 @@
 └───────────────────┘                     └─────────────────────────┘
 ```
 
-`kb*` = 切块 / 向量 / 检索 / 重排（`kb_chunk` · `kb_embed` · `kb_search` · `kb_rerank` · `local_kb` / `milvus_kb`）
+`kb*` = 切块 / 抽取 / 向量 / 检索 / 重排（`kb_chunk` · `kb_extract` · `kb_embed` · `kb_search` · `kb_rerank` · `local_kb` / `milvus_kb`）
 
 ## 目录对照
 
@@ -60,7 +60,8 @@
 ## 知识入库（离线）
 
 ```
-knowledge/*.md          管理员网页「知识库」或直接改文件
+knowledge/*.md          管理员网页「知识库」新建 / 上传 / 编辑，或直接改文件
+上传 md/txt/pdf/docx/xlsx/html/csv → infra/kb_extract 抽成 Markdown
 analyses / memory       一并切进索引
         │
         ▼  chunk          infra/kb_chunk.py
