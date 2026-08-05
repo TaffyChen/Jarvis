@@ -1,15 +1,28 @@
+"""HTTP：Jarvis 对话 / 沉淀 / 补丁 / 知识库维护。"""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import asyncio
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from app.agents.jarvis.service import ask_jarvis, ask_jarvis_stream
-from app.core.local_kb import Chunk, chunk_markdown, get_store
-from app.core.storage import read_json, write_json
-from app.config import settings
+from app.api.deps import require_perm
+
+from app.agents.chat import ask_jarvis, ask_jarvis_stream
+from app.capabilities import apply_memory_notes, apply_strategy_patch, search_knowledge
+from app.capabilities.knowledge import (
+    delete_kb_document,
+    get_kb_document,
+    kb_overview,
+    list_kb_documents,
+    preview_kb_chunks,
+    reindex_knowledge,
+    save_kb_document,
+)
+from app.domain.memory import list_memories
+from app.infra.market.service import market
+from app.infra.storage import read_json
 
 router = APIRouter(prefix="/api/jarvis", tags=["jarvis"])
 
@@ -22,6 +35,38 @@ class ChatIn(BaseModel):
 class PatchApplyIn(BaseModel):
     patch: dict
     accept: bool = True
+
+
+class MemoryApplyIn(BaseModel):
+    patch: dict
+    accept: bool = True
+    sourceQuestion: str = ""
+
+
+class KbDocIn(BaseModel):
+    path: str = Field(min_length=1)
+    content: str = ""
+    create: bool = False
+
+
+class KbPreviewIn(BaseModel):
+    path: str = ""
+    content: str | None = None
+
+
+class KbSearchIn(BaseModel):
+    query: str = Field(min_length=1)
+    top_k: int = 5
+
+
+def _kb_error(exc: Exception):
+    if isinstance(exc, FileNotFoundError):
+        raise HTTPException(status_code=404, detail=str(exc) or "文件不存在") from exc
+    if isinstance(exc, FileExistsError):
+        raise HTTPException(status_code=409, detail=str(exc) or "文件已存在") from exc
+    if isinstance(exc, ValueError):
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    raise exc
 
 
 @router.post("/chat")
@@ -43,83 +88,81 @@ async def conversations():
     return {"conversations": read_json("conversations.json", [])}
 
 
+@router.get("/memories")
+async def get_memories():
+    return {"memories": list_memories(200)}
+
+
+@router.post("/memories/apply")
+async def memories_apply(body: MemoryApplyIn):
+    if not body.accept:
+        return {"success": True, "applied": 0, "skipped": True}
+    # 站内写入采用 HITL：只有 accept=true 才真正落盘。
+    result = apply_memory_notes(body.patch or {}, source_question=body.sourceQuestion)
+    if result.get("applied"):
+        await asyncio.to_thread(reindex_knowledge)
+    return result
+
+
 @router.post("/patches/apply")
 async def apply_patch(body: PatchApplyIn):
-    """HITL：用户确认后落盘策略补丁。"""
     if not body.accept:
         return {"success": True, "applied": False}
-    patch = body.patch or {}
-    applied = []
-    analyses = read_json("analyses.json", {})
-    journal = read_json("journal.json", [])
-    proposals = read_json("strategy_proposals.json", [])
-    for p in patch.get("patches") or []:
-        target = p.get("target")
-        action = p.get("action")
-        payload = p.get("payload") or {}
-        code = p.get("code")
-        if target == "analyses" and code:
-            row = analyses.get(code) or {"code": code, "name": payload.get("name") or code}
-            if action == "update_riskOk" and "riskOk" in payload:
-                row["riskOk"] = payload["riskOk"]
-                row["reviewedAt"] = datetime.now(timezone.utc).date().isoformat()
-            if action == "add_note" and payload.get("notes"):
-                row["notes"] = payload["notes"]
-                row["reviewedAt"] = datetime.now(timezone.utc).date().isoformat()
-            analyses[code] = row
-            applied.append({"code": code, "action": action})
-        elif target == "journal":
-            journal.insert(
-                0,
-                {
-                    "ts": datetime.now(timezone.utc).isoformat(),
-                    "level": "info",
-                    "msg": payload.get("msg") or patch.get("summary") or "Jarvis 提案",
-                    "action": payload.get("action") or "策略更新",
-                    "note": payload.get("note") or "",
-                    "name": "Jarvis",
-                    "code": code or "",
-                },
-            )
-            applied.append({"target": "journal", "action": action})
-        elif target == "rules":
-            proposals.insert(
-                0,
-                {
-                    "ts": datetime.now(timezone.utc).isoformat(),
-                    "summary": patch.get("summary"),
-                    "payload": payload,
-                    "status": "accepted",
-                },
-            )
-            applied.append({"target": "rules", "action": action})
-    write_json("analyses.json", analyses)
-    write_json("journal.json", journal[:500])
-    write_json("strategy_proposals.json", proposals[:200])
-    return {"success": True, "applied": True, "items": applied}
+    # strategy_patch 是“提案”；该接口是“确认执行”入口。
+    result = apply_strategy_patch(body.patch or {})
+    if result.get("need_quotes"):
+        asyncio.create_task(market.fetch_all_quotes())
+        asyncio.create_task(market.fetch_all_klines())
+    return result
+
+
+@router.get("/kb")
+async def kb_status(_user=Depends(require_perm("kb.manage"))):
+    return kb_overview()
+
+
+@router.get("/kb/documents")
+async def kb_documents(_user=Depends(require_perm("kb.manage"))):
+    return {"documents": list_kb_documents()}
+
+
+@router.get("/kb/document")
+async def kb_document(path: str = Query(min_length=1), _user=Depends(require_perm("kb.manage"))):
+    try:
+        return get_kb_document(path)
+    except Exception as e:
+        _kb_error(e)
+
+
+@router.put("/kb/document")
+async def kb_save(body: KbDocIn, _user=Depends(require_perm("kb.manage"))):
+    try:
+        return save_kb_document(body.path, body.content, create=body.create)
+    except Exception as e:
+        _kb_error(e)
+
+
+@router.delete("/kb/document")
+async def kb_delete(path: str = Query(min_length=1), _user=Depends(require_perm("kb.manage"))):
+    try:
+        return delete_kb_document(path)
+    except Exception as e:
+        _kb_error(e)
+
+
+@router.post("/kb/preview")
+async def kb_preview(body: KbPreviewIn, _user=Depends(require_perm("kb.manage"))):
+    try:
+        return preview_kb_chunks(path=body.path or None, content=body.content)
+    except Exception as e:
+        _kb_error(e)
+
+
+@router.post("/kb/search")
+async def kb_search(body: KbSearchIn, _user=Depends(require_perm("kb.manage"))):
+    return {"hits": search_knowledge(body.query, top_k=body.top_k)}
 
 
 @router.post("/kb/reindex")
-async def reindex_kb():
-    chunks: list[Chunk] = []
-    # markdown knowledge
-    for p in sorted(settings.knowledge_dir.glob("**/*.md")):
-        text = p.read_text(encoding="utf-8", errors="ignore")
-        chunks.extend(chunk_markdown(text, source=str(p.relative_to(settings.knowledge_dir))))
-    # analyses as docs
-    analyses = read_json("analyses.json", {})
-    for code, a in (analyses or {}).items():
-        parts = [
-            a.get("name") or code,
-            a.get("reason") or "",
-            a.get("notes") or "",
-            " ".join(x.get("text") or "" for x in (a.get("analysis") or [])),
-            f"riskOk={a.get('riskOk')} reviewedAt={a.get('reviewedAt')}",
-        ]
-        text = "\n".join(parts)
-        chunks.append(
-            Chunk(id=f"analysis:{code}", text=text, source=f"analyses/{code}", meta={"code": code})
-        )
-    store = get_store()
-    store.rebuild(chunks)
-    return {"success": True, "chunks": len(chunks)}
+async def reindex_kb(_user=Depends(require_perm("kb.reindex"))):
+    return await asyncio.to_thread(reindex_knowledge)

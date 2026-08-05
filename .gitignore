@@ -5,18 +5,17 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 backend/.venv/
+backend/.venv*.bak/
 backend/data/
 backend/knowledge/
 data/vectordb/
+data/*.json
 data/*.bak
+deploy/mysql/dumps/
+deploy/dist/
 frontend/node_modules/
 frontend/dist/
 .DS_Store
 *.log
 .idea/
 .vscode/
-
-# Vite scaffold leftovers
-frontend/src/assets/
-frontend/src/components/
-frontend/public/icons.svg

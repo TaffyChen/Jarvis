@@ -1,0 +1,81 @@
+name: jarvis-milvus
+
+services:
+  etcd:
+    container_name: jarvis-milvus-etcd
+    image: quay.io/coreos/etcd:v3.5.16
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - jarvis-milvus-etcd:/etcd
+    command: etcd -advertise-client-urls=http://etcd:2379 -listen-client-urls=http://0.0.0.0:2379 --data-dir=/etcd
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 15s
+      timeout: 20s
+      retries: 5
+    restart: unless-stopped
+
+  minio:
+    container_name: jarvis-milvus-minio
+    image: minio/minio:RELEASE.2024-05-28T17-19-04Z
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    volumes:
+      - jarvis-milvus-minio:/minio_data
+    command: minio server /minio_data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 20s
+      retries: 5
+    restart: unless-stopped
+
+  standalone:
+    container_name: jarvis-milvus
+    image: milvusdb/milvus:v2.5.4
+    command: ["milvus", "run", "standalone"]
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+      MINIO_REGION: us-east-1
+    volumes:
+      - jarvis-milvus-data:/var/lib/milvus
+    ports:
+      - "${MILVUS_PORT:-19530}:19530"
+    depends_on:
+      etcd:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 15s
+      start_period: 90s
+      timeout: 20s
+      retries: 12
+    restart: unless-stopped
+
+  attu:
+    container_name: jarvis-attu
+    image: zilliz/attu:v2.5.6
+    environment:
+      MILVUS_URL: standalone:19530
+      HOST_URL: http://127.0.0.1:${ATTU_PORT:-18000}
+    ports:
+      - "${ATTU_PORT:-18000}:3000"
+    depends_on:
+      standalone:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  jarvis-milvus-etcd:
+  jarvis-milvus-minio:
+  jarvis-milvus-data:

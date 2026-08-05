@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import APIRouter
 
 from app.config import settings
-from app.core.storage import read_json, write_json
-from app.services.market.service import market
+from app.domain.codes import normalize_code
+from app.infra.local_kb import kb_info
+from app.infra.storage import read_json, storage_info, write_json
+from app.infra.market.service import market
+from app.capabilities import add_code
+from app.capabilities.query import search_codes
 
 router = APIRouter(prefix="/api", tags=["market"])
 
@@ -19,6 +25,8 @@ async def health():
         "quotes": len(market.quote_cache),
         "lastUpdate": market.last_update,
         "llmConfigured": configured,
+        "storage": storage_info(),
+        "knowledge": kb_info(),
     }
 
 
@@ -95,14 +103,62 @@ async def add_journal(body: dict):
     return {"success": True, "journal": journal}
 
 
+@router.get("/codes/search")
+async def codes_search(q: str = "", limit: int = 8):
+    rows = await search_codes(q, limit=limit)
+    return {"query": q, "results": rows}
+
+
 @router.post("/codes/add")
 async def add_codes(body: dict):
     codes = body.get("codes") or []
     added = 0
-    for c in codes:
-        if c and c not in market.stock_codes:
-            market.stock_codes.append(c)
+    need_quotes = False
+    for raw in codes:
+        c = normalize_code(raw) if raw else ""
+        if not c:
+            c = str(raw or "").strip().lower()
+        if not c:
+            continue
+        r = add_code(c, save=True)
+        if r.get("added_to_universe"):
             added += 1
-    if added:
-        market.save_codes()
+        if r.get("need_quotes"):
+            need_quotes = True
+    if need_quotes:
+        asyncio.create_task(market.fetch_all_quotes())
+        asyncio.create_task(market.fetch_all_klines())
     return {"success": True, "added": added, "total": len(market.stock_codes)}
+
+
+@router.post("/codes/remove")
+async def remove_codes(body: dict):
+    codes = body.get("codes") or []
+    removed = 0
+    for c in codes:
+        if c in market.stock_codes:
+            market.stock_codes.remove(c)
+            market.quote_cache.pop(c, None)
+            market.kline_cache.pop(c, None)
+            removed += 1
+    if removed:
+        market.save_codes()
+    return {"success": True, "removed": removed, "total": len(market.stock_codes)}
+
+
+@router.get("/screen")
+async def screen():
+    return await market.screen_top()
+
+
+@router.get("/auction")
+async def auction():
+    return await market.auction_top()
+
+
+@router.get("/sector-flow")
+async def sector_flow():
+    # Warm start: if cache is empty after service boot, fetch once on demand.
+    if not market.sector_flow_cache.get("list"):
+        await market.fetch_all_quotes()
+    return market.sector_flow_cache

@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1000" fill="none">
+  <defs>
+    <radialGradient id="bgGlow" cx="50%" cy="42%" r="55%">
+      <stop offset="0%" stop-color="#ff4d4d" stop-opacity="0.35"/>
+      <stop offset="55%" stop-color="#7a1018" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="redPlate" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff6b5a"/>
+      <stop offset="45%" stop-color="#c8192a"/>
+      <stop offset="100%" stop-color="#5c0b14"/>
+    </linearGradient>
+    <linearGradient id="goldPlate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffe09a"/>
+      <stop offset="40%" stop-color="#e0a33a"/>
+      <stop offset="100%" stop-color="#7a4a12"/>
+    </linearGradient>
+    <linearGradient id="cheek" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d52233"/>
+      <stop offset="100%" stop-color="#4d0a12"/>
+    </linearGradient>
+    <linearGradient id="eyeGlow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e8fbff"/>
+      <stop offset="55%" stop-color="#6fe7ff"/>
+      <stop offset="100%" stop-color="#1aa8d8"/>
+    </linearGradient>
+    <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="8" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="eyeBloom" x="-80%" y="-120%" width="260%" height="340%">
+      <feGaussianBlur stdDeviation="10" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="900" height="1000" fill="url(#bgGlow)"/>
+
+  <!-- outer rim -->
+  <ellipse cx="450" cy="500" rx="340" ry="360" stroke="#ff6a4d" stroke-opacity="0.18" stroke-width="2"/>
+  <ellipse cx="450" cy="500" rx="300" ry="320" stroke="#ffb070" stroke-opacity="0.16" stroke-width="1" stroke-dasharray="8 10"/>
+
+  <!-- helmet shell -->
+  <path d="M250 430
+           C250 250 330 150 450 140
+           C570 150 650 250 650 430
+           C655 520 640 620 610 700
+           C575 780 510 840 450 850
+           C390 840 325 780 290 700
+           C260 620 245 520 250 430 Z"
+        fill="url(#redPlate)"
+        stroke="#ffb28a" stroke-opacity="0.35" stroke-width="2"/>
+
+  <!-- top crest -->
+  <path d="M390 165 C420 145 480 145 510 165 C500 210 470 235 450 240 C430 235 400 210 390 165 Z"
+        fill="url(#goldPlate)" opacity="0.95"/>
+
+  <!-- cheek flaps -->
+  <path d="M250 470 C220 520 215 600 255 680 C280 640 285 560 292 500 Z" fill="url(#cheek)"/>
+  <path d="M650 470 C680 520 685 600 645 680 C620 640 615 560 608 500 Z" fill="url(#cheek)"/>
+
+  <!-- faceplate -->
+  <path d="M310 320
+           C340 250 390 220 450 215
+           C510 220 560 250 590 320
+           C605 390 600 500 575 590
+           C545 680 490 735 450 740
+           C410 735 355 680 325 590
+           C300 500 295 390 310 320 Z"
+        fill="url(#goldPlate)"
+        stroke="#ffe6b0" stroke-opacity="0.35" stroke-width="1.5"/>
+
+  <!-- center seam -->
+  <path d="M450 235 L450 720" stroke="#6b3a12" stroke-opacity="0.55" stroke-width="3"/>
+  <path d="M450 235 L450 720" stroke="#ffd27a" stroke-opacity="0.25" stroke-width="1"/>
+
+  <!-- brow ridge -->
+  <path d="M330 360 C380 330 520 330 570 360 L555 390 C510 365 390 365 345 390 Z"
+        fill="#8f1a24" opacity="0.85"/>
+
+  <!-- eyes -->
+  <g filter="url(#eyeBloom)">
+    <path d="M335 395 C365 380 395 380 415 395 L410 420 C390 408 360 408 340 420 Z" fill="url(#eyeGlow)"/>
+    <path d="M485 395 C515 380 545 380 575 395 L570 420 C550 408 520 408 490 420 Z" fill="url(#eyeGlow)"/>
+  </g>
+
+  <!-- mouth vent -->
+  <path d="M390 620 C420 645 480 645 510 620 C500 655 460 675 450 678 C440 675 400 655 390 620 Z"
+        fill="#4a120f" opacity="0.8"/>
+  <path d="M405 635 H495" stroke="#ffb070" stroke-opacity="0.25" stroke-width="2"/>
+
+  <!-- jaw chin -->
+  <path d="M360 700 C400 760 500 760 540 700 C510 780 390 780 360 700 Z"
+        fill="#9d1724" opacity="0.75"/>
+
+  <!-- arc reactor hint -->
+  <g filter="url(#softGlow)" transform="translate(450 880)">
+    <circle r="34" fill="#0b2a36" stroke="#5ee7ff" stroke-opacity="0.55" stroke-width="2"/>
+    <circle r="18" fill="#7ef0ff" opacity="0.85"/>
+    <circle r="8" fill="#eaffff"/>
+  </g>
+</svg>
