@@ -16,10 +16,6 @@ if [ ! -f "$ENV_FILE" ]; then
   exit 1
 fi
 
-if grep -qE '^VECTOR_BACKEND=milvus' "$ENV_FILE"; then
-  COMPOSE+=(-f "$ROOT/deploy/compose.milvus.yml")
-fi
-
 compose() {
   docker compose --env-file "$ENV_FILE" "${COMPOSE[@]}" "$@"
 }

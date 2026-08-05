@@ -50,11 +50,10 @@ git push origin main
 | 不要进 Git | 原因 |
 |------------|------|
 | `.env` | 密钥、密码 |
-| `data/*.json` | 持仓、对话等个人数据 |
-| `data/vectordb/` | 本地向量 |
+| 旧 `data/*.json`（若本机还有） | 个人持仓/对话，已迁 MySQL，勿再提交 |
 | `frontend/dist/`、`deploy/dist/` | 构建产物 |
 
-历史里的 `data/*.json` 已从 git 中清除；本地文件可以继续留在你机器上。
+历史里的 `data/*.json` 已从 git 中清除。本机若还留着，启动会迁进 MySQL；不必再保留该目录。
 
 ## 改 Ruleset
 

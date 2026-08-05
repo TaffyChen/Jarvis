@@ -1,7 +1,7 @@
 """
 Jarvis MCP Server（官方 mcp SDK · FastMCP）
 ==========================================
-把 capabilities 暴露给 Cursor / Claude Desktop 等 MCP 客户端。
+把 services 暴露给 Cursor / Claude Desktop 等 MCP 客户端。
 
 启动：
   cd backend && PYTHONPATH=. .venv/bin/python -m app.mcp
@@ -16,7 +16,7 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-from app.capabilities.registry import CAPABILITY_META, invoke
+from app.services.registry import CAPABILITY_META, invoke
 
 mcp = FastMCP(
     "jarvis",
@@ -86,9 +86,9 @@ def get_market_overview() -> str:
 
 
 @mcp.tool()
-def get_journal(limit: int = 5) -> str:
-    """最近日记/预警。"""
-    return _json(invoke("get_journal", limit=limit))
+def get_journal(limit: int = 5, q: str = "", level: str = "", code: str = "") -> str:
+    """纪律日记。可按关键词、级别、代码检索。"""
+    return _json(invoke("get_journal", limit=limit, q=q, level=level, code=code))
 
 
 @mcp.tool()

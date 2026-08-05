@@ -1,13 +1,12 @@
-# 服务器 / 一体部署：Jarvis 应用 + MySQL
+# 服务器 / 一体部署：Jarvis 应用 + MySQL + Milvus
 # 用法（仓库根目录）：
 #   docker compose --env-file .env -f deploy/compose.yml up -d --build
-# 可选 Milvus：
-#   docker compose --env-file .env -f deploy/compose.yml -f deploy/compose.milvus.yml up -d --build
 
 name: jarvis
 
 include:
   - path: mysql/compose.yml
+  - path: milvus/compose.yml
 
 services:
   app:
@@ -24,8 +23,7 @@ services:
       MYSQL_PORT: "3306"
       DATA_DIR: /srv/data
       KNOWLEDGE_DIR: /srv/knowledge
-      VECTOR_DIR: /srv/data/vectordb
-      MYSQL_MIRROR_JSON: "false"
+      MILVUS_URI: http://standalone:19530
     ports:
       - "${JARVIS_PORT:-1690}:1690"
     volumes:
@@ -33,6 +31,8 @@ services:
       - ../knowledge:/srv/knowledge
     depends_on:
       mysql:
+        condition: service_healthy
+      standalone:
         condition: service_healthy
 
 volumes:

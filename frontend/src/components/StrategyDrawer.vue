@@ -26,24 +26,12 @@
       <p class="rule">0红8成 · 1红5成 · 2红3成 · 3红1成 · 4-5红归零</p>
       <p class="rule warn">海外阈值：标普日跌≤-1.5% 或 纳指ETF≤-2%</p>
     </div>
-    <div class="strategy-block">
-      <h4>纪律日记（最近）</h4>
-      <div v-if="!journal.length" class="muted">暂无日记</div>
-      <div v-for="(j, i) in journal.slice(0, 15)" :key="i" class="rule" style="margin-bottom:8px">
-        <div class="muted">{{ formatTime(j.ts) }} · {{ j.name || j.code }}</div>
-        <div>{{ j.msg }} → <b>{{ j.action }}</b></div>
-      </div>
-    </div>
   </el-drawer>
 </template>
 
 <script setup>
 defineProps({
   modelValue: Boolean,
-  journal: { type: Array, default: () => [] },
 })
 defineEmits(['update:modelValue'])
-function formatTime(iso) {
-  try { return new Date(iso).toLocaleString('zh-CN') } catch { return iso || '' }
-}
 </script>

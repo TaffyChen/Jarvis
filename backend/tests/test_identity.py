@@ -1,4 +1,4 @@
-from app.infra.identity import hash_password, has_perm, verify_password
+from app.infrastructure.persistence.identity import hash_password, has_perm, verify_password
 
 
 def test_password_hash_roundtrip():

@@ -8,21 +8,27 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import capabilities as capabilities_api
+from app.api import analyses as analyses_api
 from app.api import auth as auth_api
+from app.api import codes as codes_api
+from app.api import health as health_api
 from app.api import jarvis as jarvis_api
+from app.api import journal as journal_api
+from app.api import knowledge as knowledge_api
 from app.api import market as market_api
-from app.config import ROOT, settings
-from app.infra.market.service import market
-from app.infra.local_kb import ensure_kb_ready
-from app.infra.identity import init_identity, resolve_session
-from app.infra.storage import init_storage
+from app.api import positions as positions_api
+from app.api import services as services_api
+from app.core.config import ROOT, settings
+from app.infrastructure.kb.index import ensure_kb_ready
+from app.infrastructure.persistence.identity import init_identity, resolve_session
+from app.infrastructure.persistence.storage import init_storage
+from app.services.quotes import refresh_klines, refresh_quotes
 
 
 async def _quote_loop():
     while True:
         try:
-            await market.fetch_all_quotes()
+            await refresh_quotes()
         except Exception as e:
             print("[quotes]", e)
         await asyncio.sleep(settings.quote_interval_sec)
@@ -31,7 +37,7 @@ async def _quote_loop():
 async def _kline_loop():
     while True:
         try:
-            await market.fetch_all_klines()
+            await refresh_klines()
         except Exception as e:
             print("[klines]", e)
         await asyncio.sleep(settings.kline_interval_sec)
@@ -45,8 +51,8 @@ async def lifespan(app: FastAPI):
     print(f"[identity] {ident}", flush=True)
     kb = ensure_kb_ready()
     print(f"[kb] {kb}", flush=True)
-    await market.fetch_all_quotes()
-    asyncio.create_task(market.fetch_all_klines())
+    await refresh_quotes()
+    asyncio.create_task(refresh_klines())
     qtask = asyncio.create_task(_quote_loop())
     ktask = asyncio.create_task(_kline_loop())
     yield
@@ -83,10 +89,16 @@ async def auth_guard(request: Request, call_next):
     return await call_next(request)
 
 
+app.include_router(health_api.router)
 app.include_router(market_api.router)
+app.include_router(positions_api.router)
+app.include_router(analyses_api.router)
+app.include_router(journal_api.router)
+app.include_router(codes_api.router)
 app.include_router(auth_api.router)
 app.include_router(jarvis_api.router)
-app.include_router(capabilities_api.router)
+app.include_router(services_api.router)
+app.include_router(knowledge_api.router)
 
 _FRONTEND_DIST = ROOT / "frontend" / "dist"
 if (_FRONTEND_DIST / "index.html").exists():

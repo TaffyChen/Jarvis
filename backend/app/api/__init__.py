@@ -1,3 +1,14 @@
-from app.api import auth, capabilities, jarvis, market
+from app.api import analyses, auth, codes, health, jarvis, journal, knowledge, market, positions, services
 
-__all__ = ["jarvis", "market", "capabilities", "auth"]
+__all__ = [
+    "analyses",
+    "auth",
+    "codes",
+    "health",
+    "jarvis",
+    "journal",
+    "knowledge",
+    "market",
+    "positions",
+    "services",
+]

@@ -27,7 +27,7 @@ COPY backend /srv/backend
 COPY knowledge /srv/knowledge
 COPY --from=frontend /web/dist /srv/frontend/dist
 
-RUN mkdir -p /srv/data/vectordb \
+RUN mkdir -p /srv/data \
   && useradd --create-home --uid 10001 jarvis \
   && chown -R jarvis:jarvis /srv
 

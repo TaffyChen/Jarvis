@@ -38,10 +38,10 @@ from app.agents.common import (
     add_position_intent,
     remove_position_intent,
 )
-from app.config import settings
-from app.capabilities.rag import format_retrieval_block, retrieve_for_dialog
+from app.core.config import settings
+from app.services.rag import format_retrieval_block, retrieve_for_dialog
 from app.domain.codes import normalize_code
-from app.infra.llm import SYSTEM_PROMPT, get_llm_client
+from app.infrastructure.llm import SYSTEM_PROMPT, get_llm_client
 import re
 
 # 在通用 SYSTEM_PROMPT 上追加「工具模式」纪律，告诉模型何时该调工具、何时只能提案写入。
