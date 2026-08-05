@@ -6,7 +6,7 @@
 - **模型**：DeepSeek 对话 + 硅基流动 BGE-M3 / reranker（可选）+ LangGraph
 - **数据**：业务在 MySQL；知识向量可选 Milvus；原文在 `knowledge/`；部署见 `deploy/`
 - **账户**：MySQL RBAC（管理员 / 成员）；无库时回退 `.env` 单账号
-- **规则**：`rules/agent.md` · 架构：`docs/ARCHITECTURE.md`（分层 + 入库 + RAG）· 视觉：`docs/DESIGN.md`
+- **规则**：`rules/agent.md` · 架构：`docs/ARCHITECTURE.md`（分层 + 入库 + RAG）· 视觉：`docs/DESIGN.md` · 协作：`docs/BRANCH_RULES.md`
 
 ## 快速启动
 
