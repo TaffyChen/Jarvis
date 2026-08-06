@@ -6,7 +6,7 @@ chat API / ask_jarvis 最终会调用这里的 run_decision_graph。
 职责：
 1) ainvoke 编译好的图，拿到最终 GraphState
 2) 规整 answer / sources / memories / patches / toolTrace
-3) 轻量写入 conversations.json（便于事后复盘）
+3) 轻量写入 conversations 表（便于事后复盘）
 4) 返回与旧版 ask_jarvis 对齐的 dict，多一个 toolTrace、orchestrator=graph
 """
 from __future__ import annotations
@@ -15,8 +15,8 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.agents.graph.graph import get_decision_graph
-from app.config import settings
-from app.infra.storage import read_json, write_json
+from app.core.config import settings
+from app.services.conversations import append_conversation
 
 
 def _dedupe_sources(items: list[dict]) -> list[dict]:
@@ -67,10 +67,7 @@ async def run_decision_graph(question: str, history: list[dict] | None = None) -
     tool_trace = final.get("tool_trace") or []
     retrieve_queries = final.get("retrieve_queries") or []
 
-    # 落盘对话流水（含 toolTrace），方便你打开 data/conversations.json 对照学习
-    conv = read_json("conversations.json", [])
-    conv.insert(
-        0,
+    append_conversation(
         {
             "ts": datetime.now(timezone.utc).isoformat(),
             "question": question,
@@ -84,9 +81,8 @@ async def run_decision_graph(question: str, history: list[dict] | None = None) -
             "toolTrace": [{"tool": t.get("tool"), "args": t.get("args")} for t in tool_trace],
             "retrieveQueries": retrieve_queries,
             "orchestrator": "graph",
-        },
+        }
     )
-    write_json("conversations.json", conv[:100])
 
     return {
         "answer": answer,

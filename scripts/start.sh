@@ -64,15 +64,10 @@ if [ ! -d "$ROOT/frontend/node_modules" ]; then
   npm install
 fi
 
-if grep -qE '^MYSQL_HOST=.+' "$ROOT/.env"; then
-  echo "启动 Jarvis MySQL 容器..."
-  bash "$ROOT/scripts/mysql.sh" up
-fi
-
-if grep -qE '^VECTOR_BACKEND=milvus' "$ROOT/.env"; then
-  echo "启动 Jarvis Milvus 容器..."
-  bash "$ROOT/scripts/milvus.sh" up
-fi
+echo "启动 Jarvis MySQL 容器..."
+bash "$ROOT/scripts/mysql.sh" up
+echo "启动 Jarvis Milvus 容器..."
+bash "$ROOT/scripts/milvus.sh" up
 
 kill_port "$BACKEND_PORT"
 kill_port "$FRONTEND_PORT"

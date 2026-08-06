@@ -9,7 +9,7 @@ alwaysApply: true
 
 ## 必须遵守
 
-1. **分层**：api/mcp/agents → capabilities → domain → infra；业务只写在 `capabilities/`。对话 RAG 在 `capabilities/rag.py`。
+1. **分层**：api/mcp/agents → services → domain → infrastructure；业务只写在 `services/`。对话 RAG 在 `services/rag.py`。
 2. **网页 vs MCP**：`bash start.sh` 启本机开发；服务器打包见 `deploy/`；MCP 是 stdio，由 Cursor **按需拉起**（`scripts/mcp.sh`）。
 3. **写入**：站内对话用 patch + 用户确认；MCP 写入工具会直接改本地数据（JSON 或可选 MySQL），仅可信环境。
 4. **Python**：`backend/.venv` ≥ 3.10（推荐 3.12）；官方 `mcp` SDK。

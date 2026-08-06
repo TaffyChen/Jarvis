@@ -1,4 +1,4 @@
-from app.capabilities.rag import expand_retrieval_queries, format_retrieval_block
+from app.services.rag import expand_retrieval_queries, format_retrieval_block
 
 
 def test_expand_queries_keeps_original():

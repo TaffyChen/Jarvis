@@ -16,18 +16,18 @@ Jarvis 是**个人** A 股交易参谋数字员工，不是多租户 SaaS。
 | 纪律知识库 | `knowledge/*.md` → 本地向量或 Docker Milvus |
 | 对话参谋 | LangGraph 多工具决策图 + HITL 补丁 |
 | 对话沉淀 | `memory_notes` 认知卡片 |
-| 共用能力层 | `capabilities` 供对话框 / HTTP / MCP 共用 |
+| 共用服务层 | `services` 供对话框 / HTTP / MCP 共用 |
 
 **架构主线**：
 
 ```
 接入层 api / mcp / agents
     ↓
-应用层 capabilities（唯一业务入口）
+应用层 services（唯一业务入口）
     ↓
 领域层 domain（codes / memory）
     ↓
-基础设施 infra（storage / llm / kb / market）
+基础设施 infrastructure（persistence / kb / market / llm）
 ```
 
 依赖只允许**向内**。业务逻辑禁止写在 MCP、tools 适配层里复制一份。
@@ -38,17 +38,18 @@ Jarvis 是**个人** A 股交易参谋数字员工，不是多租户 SaaS。
 
 | 层 | 路径 | 约定 |
 |----|------|------|
-| HTTP | `backend/app/api/` | FastAPI；行情 / 对话 / capabilities |
+| HTTP | `backend/app/api/` | FastAPI；行情 / 对话 / knowledge / services |
 | MCP | `backend/app/mcp/` | 官方 `mcp` FastMCP；`python -m app.mcp` |
 | Agent | `backend/app/agents/` | `chat.py` 入口 + `graph/` 决策图 |
-| 能力 | `backend/app/capabilities/` | query / mutate / knowledge / rag / registry |
+| 服务 | `backend/app/services/` | journal / positions / analyses / codes / quotes / memory / patches / knowledge / rag |
+| 横切 | `backend/app/core/` | config / deps |
 | 领域 | `backend/app/domain/` | 代码规范化、沉淀模型 |
-| 基础设施 | `backend/app/infra/` | storage / identity(RBAC) / llm / 本地或 Milvus 向量 / 行情 |
+| 基础设施 | `backend/app/infrastructure/` | storage / identity(RBAC) / llm / 本地或 Milvus 向量 / 行情 |
 | 文档 | `docs/` | 架构、视觉、决策图 |
 | 部署 | `deploy/` | Dockerfile / compose / MySQL init SQL |
 | 前端 | `frontend/` | Vue3 + Pinia；Element 仅弹层/表格 |
 | 知识 | `knowledge/` | 策略 Markdown |
-| 数据 | `data/` + 可选 MySQL / Milvus | 持仓分析等可进 MySQL；账户 RBAC 在 MySQL；知识向量可切 Milvus |
+| 数据 | MySQL + Milvus | 业务表与 RBAC 在 MySQL；知识向量在 Milvus；原文在 `knowledge/` |
 
 **运行时**：Python **≥ 3.10**（推荐 3.12），`backend/.venv`；LLM 为 DeepSeek（OpenAI 兼容）。
 
@@ -76,7 +77,7 @@ MCP Server 是 **stdio 进程**：Cursor 需要时自动启动。
 |--|-------------|------------|
 | 谁启动 | 你执行 `start.sh` | Cursor 配置后自动拉起 |
 | 是否常驻 | 是 | 通常否（stdio） |
-| 用途 | 仪表盘 + 站内对话 | 外部 Agent 调同一套 capabilities |
+| 用途 | 仪表盘 + 站内对话 | 外部 Agent 调同一套 services |
 | 写入 | 对话补丁需 HITL 确认 | MCP 写入工具会直接改本地，仅可信环境 |
 
 ---
@@ -101,10 +102,10 @@ MCP Server 是 **stdio 进程**：Cursor 需要时自动启动。
 ### 4.3 多入口必须共用
 
 ```
-agents/graph/tools.py  → capabilities.query
-api/capabilities.py    → capabilities.invoke
-mcp/server.py          → capabilities.invoke
-api patches/apply      → capabilities.mutate
+agents/graph/tools.py  → services.quotes / positions / journal / ...
+api/services.py        → services.invoke
+mcp/server.py          → services.invoke
+api patches/apply      → services.patches
 ```
 
 发现能力：`GET /api/jarvis/capabilities`
@@ -114,7 +115,7 @@ api patches/apply      → capabilities.mutate
 ## 五、对话 Agent 约定
 
 - 编排：LangGraph（`agents/chat.py` → `graph/`）
-- RAG：`capabilities/rag.py`（查询扩展 → 多路召回 → rerank）→ bootstrap 注入原文
+- RAG：`services/rag.py`（查询扩展 → 多路召回 → rerank）→ bootstrap 注入原文
 - Embedding / Rerank：`.env` 的 `EMBEDDING_*` / `RERANK_*`（与 DeepSeek 对话 Key 分开）
 - 工具轮次上限：`JARVIS_GRAPH_MAX_TOOL_ROUNDS`（默认 4）
 - 学习走查：`docs/decision-graph.md`
@@ -138,7 +139,7 @@ api patches/apply      → capabilities.mutate
 ## 七、安全与仓库卫生
 
 - `LLM_API_KEY` 只在 `.env`，勿提交、勿写进 rules
-- `data/` 含个人持仓与分析，按需 gitignore / 勿泄露
+- 勿把旧 `data/*.json`、持仓、对话流水提交进 Git
 - 本规则书**不得**粘贴任何服务器密码、SSH、生产 Admin 账号
 
 ---
@@ -147,7 +148,7 @@ api patches/apply      → capabilities.mutate
 
 ### 8.1 新增只读能力
 
-1. `capabilities/query.py` 实现  
+1. `services/query.py` 实现  
 2. `registry.py` 注册 meta + CALLABLES  
 3. `agents/graph/tools.py` 增加 OpenAI tool schema（若对话要用）  
 4. `mcp/server.py` 增加 `@mcp.tool`（若 MCP 要用）  
@@ -155,7 +156,7 @@ api patches/apply      → capabilities.mutate
 
 ### 8.2 新增写入能力
 
-1. `capabilities/mutate.py`  
+1. `services/mutate.py`  
 2. registry +（可选）MCP tool，描述标明【写入】  
 3. 站内对话：扩展 `strategy_patch` target + `/patches/apply`  
 4. 前端补丁卡片文案  
@@ -176,7 +177,7 @@ api patches/apply      → capabilities.mutate
 当前任务：[填写]
 
 要求：
-1) 业务只进 capabilities，禁止在 mcp/tools 复制逻辑
+1) 业务只进 services，禁止在 mcp/tools 复制逻辑
 2) 站内写入走 HITL 补丁；分清 start.sh（网页）与 mcp.sh（Cursor 按需）
 3) Python >= 3.10（venv 用 3.12）；不改 harnessos / 旧 dashboard 原仓
 4) 简体中文沟通

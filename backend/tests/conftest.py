@@ -8,14 +8,14 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.config import settings
-from app.infra.market.service import market
-from app.infra.storage import reset_storage_state
+from app.core.config import settings
+from app.infrastructure.market.service import market
+from app.infrastructure.persistence.storage import reset_storage_state
 
 
 @pytest.fixture()
 def isolated_data_dir(tmp_path):
-    """将读写重定向到临时目录，避免单测污染真实 data/。"""
+    """关掉 MySQL、走内存库；tmp_path 仅占位 data_dir，避免误写仓库。"""
     old_data_dir = settings.data_dir
     old_mysql_host = settings.mysql_host
     old_stock_codes = copy.deepcopy(market.stock_codes)

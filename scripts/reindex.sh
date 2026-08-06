@@ -1,7 +1,7 @@
 #!/bin/bash
 # Jarvis - 重建本地知识库索引（实现）
 # 用法: bash scripts/reindex.sh
-# 将 knowledge/*.md 与 analyses / memory 切分写入本地向量或 Milvus
+# 将 knowledge/*.md 与 analyses / memory 切分写入 Milvus
 
 set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -16,5 +16,5 @@ export PYTHONPATH="$ROOT/backend"
 echo "正在重建知识库索引..."
 "$ROOT/backend/.venv/bin/python" -m app.scripts.reindex_kb
 echo ""
-echo "完成。VECTOR_BACKEND=local 时写入 data/vectordb/local_kb.json；=milvus 时写入 Docker Milvus。"
+echo "完成。索引已写入 Milvus（见 .env 的 MILVUS_URI / MILVUS_COLLECTION）。"
 echo "若后端已在运行，可直接继续对话，无需重启。"

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.capabilities.knowledge import (
+from app.services.knowledge import (
     delete_kb_document,
     get_kb_document,
     list_kb_documents,
@@ -10,31 +10,24 @@ from app.capabilities.knowledge import (
     save_kb_document,
     upload_kb_document,
 )
-from app.infra.kb_extract import extract_markdown, md_path_for_upload
-from app.config import settings
-from app.infra.kb_chunk import chunk_markdown
-from app.infra.kb_search import keyword_rank, rrf_fuse
-from app.infra.local_kb import collect_chunks, reset_store, write_kb_meta
+from app.infrastructure.kb.extract import extract_markdown, md_path_for_upload
+from app.core.config import settings
+from app.infrastructure.kb.chunk import chunk_markdown
+from app.infrastructure.kb.search import keyword_rank, rrf_fuse
+from app.infrastructure.kb.index import collect_chunks, reset_store, write_kb_meta
 
 
 @pytest.fixture()
 def isolated_kb(tmp_path, isolated_data_dir):
     old_knowledge = settings.knowledge_dir
-    old_vector = settings.vector_dir
-    old_backend = settings.vector_backend
     try:
         object.__setattr__(settings, "knowledge_dir", tmp_path / "knowledge")
-        object.__setattr__(settings, "vector_dir", tmp_path / "vectordb")
-        object.__setattr__(settings, "vector_backend", "local")
         settings.knowledge_dir.mkdir(parents=True, exist_ok=True)
-        settings.vector_dir.mkdir(parents=True, exist_ok=True)
         reset_store()
         yield tmp_path
     finally:
         reset_store()
         object.__setattr__(settings, "knowledge_dir", old_knowledge)
-        object.__setattr__(settings, "vector_dir", old_vector)
-        object.__setattr__(settings, "vector_backend", old_backend)
 
 
 def test_chunk_markdown_keeps_heading_path():

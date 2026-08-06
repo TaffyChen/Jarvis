@@ -49,6 +49,10 @@
             <div class="nav-group-title"><span>策略 / 工具</span></div>
             <div class="nav-items">
               <button class="nav-item" @click="dash.strategyOpen = true">策略引擎</button>
+              <button
+                :class="['nav-item', { active: dash.view === 'journal' }]"
+                @click="dash.view = 'journal'"
+              >纪律日记</button>
               <button class="nav-item" @click="openPosition()">持仓管理</button>
               <button class="nav-item" @click="openAdd()">添加标的</button>
               <button
@@ -63,111 +67,14 @@
 
         <div class="main-content">
           <div v-if="dash.error" class="error-banner">{{ dash.error }}</div>
-
-          <MarketOverview
-            v-if="dash.view !== 'knowledge'"
-            :indices="dash.indices"
-            :market-breadth="dash.marketBreadth"
-            :overseas="dash.overseas"
-            :conditions="dash.conditions"
-            :lamps="dash.lamps"
-            :position-rec="dash.positionRec"
+          <WorkspaceView
+            :stock-layout="stockLayout"
             @toggle-lever="onToggleLever"
-          />
-
-          <div
-            v-if="dash.view !== 'sectorFlow' && dash.view !== 'knowledge'"
-            class="mainrise-bar"
-            role="button"
-            tabindex="0"
-            @click="dash.view = 'sectorFlow'"
-          >
-            <div class="mainrise-mini">
-              <div class="mainrise-title">板块资金流摘要</div>
-              <div class="mainrise-summary" :class="sectorFlowTop?.netInflow > 0 ? 'met' : 'unmet'">
-                流入 Top1：{{ sectorFlowTop?.sectorName || '--' }}
-                {{ sectorFlowTop ? `${sectorFlowTop.netInflow > 0 ? '+' : ''}${sectorFlowTop.netInflow.toFixed(1)}亿` : '' }}
-                · 流出 Top1：{{ sectorFlowBottom?.sectorName || '--' }}
-                {{ sectorFlowBottom ? `${sectorFlowBottom.netInflow.toFixed(1)}亿` : '' }}
-              </div>
-              <span class="mainrise-count">查看双向榜</span>
-            </div>
-          </div>
-
-          <template v-if="dash.view === 'stocks'">
-            <MainRiseBar :main-rise="dash.mainRise" @toggle-ice="onToggleIce" />
-
-            <FilterBar
-              v-model:search="dash.search"
-              v-model:filter="dash.filter"
-              v-model:sector="dash.sector"
-              :counts="dash.tabCounts"
-              :sectors="dash.sectors"
-            />
-
-            <div class="section-head">
-              <div class="section-head-left">
-                <h2>{{ stockLayout === 'list' ? '标的列表' : '标的卡片' }}</h2>
-                <span class="muted">共 {{ dash.cards.length }} / {{ dash.items.length }} 只</span>
-              </div>
-              <div class="layout-toggle" role="group" aria-label="标的展示形式">
-                <button
-                  type="button"
-                  :class="{ active: stockLayout === 'card' }"
-                  @click="setStockLayout('card')"
-                >卡片</button>
-                <button
-                  type="button"
-                  :class="{ active: stockLayout === 'list' }"
-                  @click="setStockLayout('list')"
-                >列表</button>
-              </div>
-            </div>
-
-            <template v-if="dash.cards.length">
-              <div v-if="stockLayout === 'card'" class="stock-grid">
-                <StockCard
-                  v-for="(c, idx) in dash.cards"
-                  :key="c.code"
-                  :card="c"
-                  :idx="idx"
-                  @review="onReview"
-                  @edit-position="openPosition"
-                  @journal="onJournal"
-                />
-              </div>
-              <StockList
-                v-else
-                :cards="dash.cards"
-                @review="onReview"
-                @edit-position="openPosition"
-                @journal="onJournal"
-              />
-            </template>
-            <div v-else class="empty">没有匹配的标的。调整筛选，或点「添加标的」。</div>
-          </template>
-
-          <template v-else-if="dash.view === 'sectorFlow'">
-            <SectorFlowBoard :data="dash.sectorFlow" />
-          </template>
-
-          <ScreenPanel
-            v-else-if="dash.view === 'screen'"
-            :rows="dash.screenResults"
-            :meta="dash.screenMeta"
-            :loading="dash.screenLoading"
-            @refresh="dash.fetchScreen()"
-            @add="openAdd"
-          />
-
-          <KnowledgePanel v-else-if="dash.view === 'knowledge'" />
-
-          <AuctionPanel
-            v-else
-            :rows="dash.auctionResults"
-            :meta="dash.auctionMeta"
-            :loading="dash.auctionLoading"
-            @refresh="dash.fetchAuction()"
+            @toggle-ice="onToggleIce"
+            @layout="setStockLayout"
+            @review="onReview"
+            @edit-position="openPosition"
+            @journal="onJournal"
             @add="openAdd"
           />
         </div>
@@ -181,7 +88,7 @@
 
     <PositionDialog v-model="dash.positionOpen" :preset="positionPreset" />
     <AddStockDialog v-model="dash.addOpen" :preset="addPreset" />
-    <StrategyDrawer v-model="dash.strategyOpen" :journal="dash.journal" />
+    <StrategyDrawer v-model="dash.strategyOpen" />
   </div>
 </template>
 
@@ -191,20 +98,12 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useDashboardStore } from './stores/dashboard'
 import { useAuthStore } from './stores/auth'
 import AlertBanner from './components/AlertBanner.vue'
-import MarketOverview from './components/MarketOverview.vue'
-import FilterBar from './components/FilterBar.vue'
-import StockCard from './components/StockCard.vue'
-import StockList from './components/StockList.vue'
 import ChatPanel from './components/ChatPanel.vue'
 import PositionDialog from './components/PositionDialog.vue'
 import StrategyDrawer from './components/StrategyDrawer.vue'
-import MainRiseBar from './components/MainRiseBar.vue'
-import ScreenPanel from './components/ScreenPanel.vue'
-import AuctionPanel from './components/AuctionPanel.vue'
 import AddStockDialog from './components/AddStockDialog.vue'
 import LoginPage from './components/LoginPage.vue'
-import SectorFlowBoard from './components/SectorFlowBoard.vue'
-import KnowledgePanel from './components/KnowledgePanel.vue'
+import WorkspaceView from './views/WorkspaceView.vue'
 
 const dash = useDashboardStore()
 const auth = useAuthStore()
@@ -227,13 +126,6 @@ const stale = computed(() => {
   if (!dash.lastUpdate) return true
   return Date.now() - new Date(dash.lastUpdate).getTime() > 30000
 })
-const sectorFlowTop = computed(() => (dash.sectorFlow?.list || [])[0] || null)
-const sectorFlowBottom = computed(() => {
-  const list = dash.sectorFlow?.list || []
-  if (!list.length) return null
-  return [...list].sort((a, b) => a.netInflow - b.netInflow)[0] || null
-})
-
 function formatTime(iso) {
   try { return new Date(iso).toLocaleTimeString('zh-CN') } catch { return iso }
 }
@@ -285,6 +177,7 @@ async function onJournal(alert) {
       inputPlaceholder: '实际执行了什么',
     })
     await dash.journalAlert(alert, value || '')
+    dash.view = 'journal'
     ElMessage.success('已记入日记')
   } catch { /* cancel */ }
 }

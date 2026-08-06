@@ -2,18 +2,18 @@
 决策图可调用工具（适配层）
 ========================
 这里不再实现业务逻辑，只做两件事：
-1) 调用 app.capabilities（共用能力层）
+1) 调用 app.services（共用服务层）
 2) 把结果 json.dumps，并提供 OpenAI Function Calling schema
 
 【边界】本文件暴露给模型的仍是只读工具。
-写入（加标的/持仓）走 strategy_patch → HITL → capabilities.apply_strategy_patch。
+写入（加标的/持仓）走 strategy_patch → HITL → services.apply_strategy_patch。
 """
 from __future__ import annotations
 
 import json
 from typing import Any, Callable
 
-from app.capabilities import query as caps
+from app.services import analyses, journal, knowledge, memory, positions, quotes
 
 JsonFn = Callable[..., str]
 
@@ -23,35 +23,35 @@ def _dumps(obj: Any) -> str:
 
 
 def tool_search_knowledge(query: str, top_k: int = 5) -> str:
-    return _dumps(caps.search_knowledge(query, top_k=top_k))
+    return _dumps(knowledge.search_knowledge(query, top_k=top_k))
 
 
 def tool_search_memory(query: str, top_k: int = 5) -> str:
-    return _dumps(caps.search_memory(query, top_k=top_k))
+    return _dumps(memory.search_memories(query, top_k=top_k))
 
 
 def tool_get_quote(code: str) -> str:
-    return _dumps(caps.get_quote(code))
+    return _dumps(quotes.get_quote(code))
 
 
 def tool_get_score(code: str) -> str:
-    return _dumps(caps.get_score(code))
+    return _dumps(quotes.get_score(code))
 
 
 def tool_get_analysis(code: str) -> str:
-    return _dumps(caps.get_analysis(code))
+    return _dumps(analyses.get_analysis(code))
 
 
 def tool_get_positions() -> str:
-    return _dumps(caps.get_positions())
+    return _dumps(positions.get_positions())
 
 
 def tool_get_market_overview() -> str:
-    return _dumps(caps.get_market_overview())
+    return _dumps(quotes.get_market_overview())
 
 
-def tool_get_journal(limit: int = 5) -> str:
-    return _dumps(caps.get_journal(limit=limit))
+def tool_get_journal(limit: int = 5, q: str = "", level: str = "", code: str = "") -> str:
+    return _dumps(journal.get_journal(limit=limit, q=q, level=level, code=code))
 
 
 TOOL_IMPLS: dict[str, JsonFn] = {
@@ -152,10 +152,15 @@ OPENAI_TOOLS: list[dict] = [
         "type": "function",
         "function": {
             "name": "get_journal",
-            "description": "最近日记/预警记录。",
+            "description": "纪律日记：可按关键词、级别、代码检索最近留痕。",
             "parameters": {
                 "type": "object",
-                "properties": {"limit": {"type": "integer"}},
+                "properties": {
+                    "limit": {"type": "integer", "description": "最多返回条数，默认 5，上限 20"},
+                    "q": {"type": "string", "description": "关键词，匹配代码/名称/告警/动作/备注"},
+                    "level": {"type": "string", "description": "danger / warning / info"},
+                    "code": {"type": "string", "description": "标的代码，如 000636 或 sz000636"},
+                },
             },
         },
     },

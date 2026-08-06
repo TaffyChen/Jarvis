@@ -1,10 +1,12 @@
-"""HTTP：登录 / 会话 / 当前用户（MySQL RBAC，无库时回退 .env）。"""
+"""HTTP：登录 / 会话 / 当前用户。"""
 from __future__ import annotations
 
 from fastapi import APIRouter, Header
 from pydantic import BaseModel, Field
 
-from app.infra.identity import authenticate, create_session, destroy_session, resolve_session
+from app.services.auth import login as login_svc
+from app.services.auth import logout as logout_svc
+from app.services.auth import me as me_svc
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -14,38 +16,16 @@ class LoginIn(BaseModel):
     password: str = Field(min_length=1)
 
 
-def _public_user(user: dict) -> dict:
-    return {
-        "account": user.get("account"),
-        "displayName": user.get("displayName") or user.get("account"),
-        "roles": user.get("roles") or [],
-        "permissions": user.get("permissions") or [],
-    }
-
-
 @router.post("/login")
 async def login(body: LoginIn):
-    user = authenticate(body.account, body.password)
-    if not user:
-        return {"ok": False, "error": "账号或密码错误"}
-    token, expires_at = create_session(user)
-    return {
-        "ok": True,
-        "token": token,
-        "expiresAt": expires_at.isoformat(),
-        **_public_user(user),
-    }
+    return login_svc(body.account, body.password)
 
 
 @router.post("/logout")
 async def logout(token: str = Header(default="", alias="x-jarvis-token")):
-    destroy_session(token)
-    return {"ok": True}
+    return logout_svc(token)
 
 
 @router.get("/me")
 async def me(token: str = Header(default="", alias="x-jarvis-token")):
-    user = resolve_session(token)
-    if not user:
-        return {"ok": False, "authed": False}
-    return {"ok": True, "authed": True, **_public_user(user)}
+    return me_svc(token)

@@ -35,7 +35,7 @@ export const api = {
   savePositions: (positions) => http.post('/positions', { positions }).then((r) => r.data),
   analyses: () => http.get('/analyses').then((r) => r.data),
   upsertAnalysis: (body) => http.post('/analyses', body).then((r) => r.data),
-  journal: () => http.get('/journal').then((r) => r.data),
+  journal: (params = {}) => http.get('/journal', { params }).then((r) => r.data),
   addJournal: (entry) => http.post('/journal', { entry }).then((r) => r.data),
   searchCodes: (q) => http.get('/codes/search', { params: { q, limit: 8 } }).then((r) => r.data),
   addCodes: (codes) => http.post('/codes/add', { codes }).then((r) => r.data),

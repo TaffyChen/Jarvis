@@ -91,7 +91,7 @@ START → bootstrap → agent ⇄ tools → END
 - `patch` / `memoryPatch`：提案（需你点确认才落库）
 - `orchestrator: "graph"`
 
-同时写入 `data/conversations.json`，方便事后打开对照。
+同时写入 MySQL `conversations` 表，方便事后复盘。
 
 ---
 
@@ -125,7 +125,7 @@ START → bootstrap → agent ⇄ tools → END
 配置见：
 
 - `.env` / `.env.example`：`JARVIS_GRAPH_MAX_TOOL_ROUNDS`
-- `backend/app/config.py`：`jarvis_graph_max_tool_rounds`
+- `backend/app/core/config.py`：`jarvis_graph_max_tool_rounds`
 
 ---
 
@@ -135,8 +135,8 @@ START → bootstrap → agent ⇄ tools → END
 |------|------|
 | 对话入口 | `backend/app/agents/chat.py` |
 | 状态字段含义 | `state.py` |
-| 只读工具 + schema | `tools.py`（适配层，业务在 capabilities） |
-| 共用能力层 | `backend/app/capabilities/` |
+| 只读工具 + schema | `tools.py`（适配层，业务在 services） |
+| 共用服务层 | `backend/app/services/` |
 | 节点 / 路由 / 收束 | `graph.py` |
 | API 调用与 toolTrace 返回 | `runner.py` |
 | 前端展示工具链 | `frontend/src/components/ChatPanel.vue` |
@@ -147,7 +147,7 @@ START → bootstrap → agent ⇄ tools → END
 
 1. 打开前端对话，问：`现在持仓有哪些？` 或 `sz300408 还能持有吗？`
 2. 看回复下方是否出现「工具：get_positions …」之类
-3. 打开 `data/conversations.json` 最新一条，对照 `toolTrace` 字段
+3. 对照回复里的「工具：…」与库中 `conversations` 表的 `tool_trace_json`
 
 若没有工具链：确认后端已重启、`LLM_API_KEY` 有效，并看后端日志。
 
