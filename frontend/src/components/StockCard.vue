@@ -53,6 +53,24 @@
       | 盈亏{{ card.pnl >= 0 ? '+' : '' }}{{ card.pnl.toFixed(0) }}
       ({{ card.pnlPct >= 0 ? '+' : '' }}{{ card.pnlPct.toFixed(2) }}%)
     </div>
+    <div v-if="card.levels" class="levels-row">
+      <span :class="['level-chip', card.levels.stopHit ? 'hit' : '']">
+        止损 {{ fmt(card.levels.stopLoss, 3) }}
+        <em v-if="card.levels.stopLossSource === 'custom'">自定</em>
+        <em v-else>默认-8%</em>
+        <template v-if="card.levels.distToStopPct != null">
+          · 距{{ card.levels.distToStopPct >= 0 ? '+' : '' }}{{ card.levels.distToStopPct.toFixed(1) }}%
+        </template>
+      </span>
+      <span :class="['level-chip tp', card.levels.takeHit ? 'hit-tp' : '']">
+        止盈 {{ fmt(card.levels.takeProfit, 3) }}
+        <em v-if="card.levels.takeProfitSource === 'custom'">自定</em>
+        <em v-else>默认+10%</em>
+        <template v-if="card.levels.distToTakePct != null">
+          · 距{{ card.levels.distToTakePct >= 0 ? '+' : '' }}{{ card.levels.distToTakePct.toFixed(1) }}%
+        </template>
+      </span>
+    </div>
     <div v-for="(al, i) in card.cardAlerts" :key="'a'+i" :class="['card-alert', al.level]">
       <span>⚠ {{ al.msg }} → {{ al.action }}</span>
       <button class="btn btn-sm btn-ghost" @click="$emit('journal', al)">记日记</button>

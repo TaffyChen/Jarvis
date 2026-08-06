@@ -40,6 +40,8 @@
   --page-max: 1560px;
   --sidebar-w: 212px;
   --chat-w: 480px;
+  --chat-w-wide: 720px;
+  --chat-aside-w: 200px;
   color-scheme: dark;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
@@ -480,6 +482,20 @@ html, body, #app {
 .pnl { margin-top: 8px; font-size: 12px; padding: 6px 8px; border-radius: 6px; }
 .pnl.profit { background: rgba(248,81,73,0.1); color: var(--red); }
 .pnl.loss { background: rgba(63,185,80,0.1); color: var(--green); }
+.levels-row {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;
+}
+.level-chip {
+  font-size: 11px; padding: 3px 8px; border-radius: 6px;
+  border: 1px solid rgba(248,81,73,0.35); color: var(--muted);
+  background: rgba(248,81,73,0.06);
+}
+.level-chip.tp {
+  border-color: rgba(63,185,80,0.35); background: rgba(63,185,80,0.06);
+}
+.level-chip em { font-style: normal; opacity: 0.75; margin-left: 2px; }
+.level-chip.hit { color: var(--red); border-color: rgba(248,81,73,0.55); font-weight: 600; }
+.level-chip.hit-tp { color: var(--orange); border-color: rgba(210,153,34,0.5); font-weight: 600; }
 .card-alert {
   margin-top: 6px; font-size: 11px; padding: 4px 8px; border-radius: 4px; font-weight: 600;
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -608,6 +624,64 @@ html, body, #app {
   box-shadow: var(--shadow-overlay);
   animation: slideIn 0.18s ease-out;
 }
+.chat-dock.with-sidebar {
+  width: min(var(--chat-w-wide), 100vw);
+}
+.chat-shell {
+  display: flex; flex: 1; min-height: 0;
+}
+.chat-aside {
+  width: var(--chat-aside-w);
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  background: var(--neutral-soft);
+}
+.chat-new {
+  margin: 10px 10px 6px;
+  justify-content: center;
+}
+.chat-aside-scroll {
+  flex: 1; overflow: auto; padding: 4px 8px 12px;
+}
+.chat-aside-empty {
+  font-size: 12px; color: var(--muted); padding: 12px 6px;
+}
+.chat-aside-group { margin-bottom: 10px; }
+.chat-aside-label {
+  font-size: 11px; color: var(--muted); padding: 4px 6px 6px; font-weight: 600;
+}
+.chat-aside-item {
+  width: 100%;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  text-align: left;
+  padding: 8px 8px;
+  margin-bottom: 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.chat-aside-item:hover { background: var(--card-bg); border-color: var(--border); }
+.chat-aside-item.active {
+  background: var(--blue-bg);
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.chat-aside-title {
+  font-size: 12px; line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.chat-aside-time { font-size: 10px; color: var(--muted); }
+.chat-main {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column;
+}
+.msg-hist {
+  margin-left: 6px; font-size: 10px; color: var(--muted);
+  border: 1px solid var(--border); border-radius: 999px; padding: 0 6px;
+}
 @keyframes slideIn {
   from { transform: translateX(24px); opacity: 0.6; }
   to { transform: translateX(0); opacity: 1; }
@@ -625,7 +699,7 @@ html, body, #app {
   display: block; margin-top: 2px;
   font-size: 11px; color: var(--muted);
 }
-.chat-head-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.chat-head-actions { display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
 
 .chat-body {
   flex: 1; overflow: auto; padding: 12px 12px 16px;
@@ -856,6 +930,17 @@ html, body, #app {
   background: rgba(210,153,34,0.1);
   border: 1px solid rgba(210,153,34,0.35);
 }
+.patch-missing {
+  margin-top: 2px;
+  padding: 10px 11px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  width: 100%;
+  line-height: 1.5;
+  color: var(--muted);
+  background: rgba(139,148,158,0.08);
+  border: 1px dashed var(--border);
+}
 .memory-box {
   background: rgba(63,185,80,0.08);
   border: 1px solid rgba(63,185,80,0.35);
@@ -938,7 +1023,8 @@ html, body, #app {
 .chat-send { flex-shrink: 0; min-width: 64px; }
 
 @media (max-width: 640px) {
-  .chat-dock { width: 100vw; }
+  .chat-dock, .chat-dock.with-sidebar { width: 100vw; }
+  .chat-aside { width: 160px; }
 }
 
 .strategy-block { margin-bottom: 16px; }

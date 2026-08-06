@@ -1,5 +1,5 @@
 <template>
-  <el-dialog :model-value="modelValue" title="持仓管理" width="760px" @close="$emit('update:modelValue', false)">
+  <el-dialog :model-value="modelValue" title="持仓管理" width="920px" @close="$emit('update:modelValue', false)">
     <div style="margin-bottom:14px">
       <div class="muted" style="margin-bottom:8px;font-weight:700;color:var(--bright)">当前持仓</div>
       <el-table :data="rows" size="small" empty-text="暂无持仓" style="width:100%">
@@ -7,6 +7,8 @@
         <el-table-column prop="buyPrice" label="成本" width="88" />
         <el-table-column prop="shares" label="股数" width="72" />
         <el-table-column prop="price" label="现价" width="80" />
+        <el-table-column prop="stopText" label="止损" width="88" />
+        <el-table-column prop="takeText" label="止盈" width="88" />
         <el-table-column label="盈亏额" width="96">
           <template #default="{ row }">
             <span :class="row.hasQuote ? (row.pnl >= 0 ? 'up' : 'down') : 'muted'">{{ row.pnlText }}</span>
@@ -50,6 +52,33 @@
           <el-input-number v-model="form.shares" :step="100" :min="1" style="width:100%" />
         </el-form-item>
       </div>
+      <div style="display:flex;gap:12px">
+        <el-form-item label="止损价（可选，空=成本-8%）" style="flex:1">
+          <el-input-number
+            v-model="form.stopLossPrice"
+            :step="0.01"
+            :precision="3"
+            :min="0"
+            controls-position="right"
+            style="width:100%"
+            placeholder="默认自动"
+          />
+        </el-form-item>
+        <el-form-item label="止盈价（可选，空=成本+10%）" style="flex:1">
+          <el-input-number
+            v-model="form.takeProfitPrice"
+            :step="0.01"
+            :precision="3"
+            :min="0"
+            controls-position="right"
+            style="width:100%"
+            placeholder="默认自动"
+          />
+        </el-form-item>
+      </div>
+      <div v-if="autoHint" class="muted" style="margin-top:-6px;margin-bottom:8px;font-size:12px">
+        {{ autoHint }}
+      </div>
     </el-form>
 
     <template #footer>
@@ -64,6 +93,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useDashboardStore } from '../stores/dashboard'
 import { api } from '../api'
+import { positionRiskLevels } from '../utils/signals'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -79,6 +109,8 @@ const form = reactive({
   name: '',
   buyPrice: 0,
   shares: 100,
+  stopLossPrice: undefined,
+  takeProfitPrice: undefined,
 })
 
 const displayCode = computed(() => String(form.code || '').replace(/^(sh|sz)/i, ''))
@@ -89,6 +121,14 @@ const quoteHint = computed(() => {
   return `现价 ${Number(q.price).toFixed(2)}`
 })
 
+const autoHint = computed(() => {
+  const buy = Number(form.buyPrice) || 0
+  if (!(buy > 0)) return ''
+  const sl = (buy * 0.92).toFixed(3)
+  const tp = (buy * 1.1).toFixed(3)
+  return `默认参考：止损 ${sl}（-8%）· 止盈 ${tp}（+10%）。铁律（破线/回撤）仍优先于价格。`
+})
+
 const rows = computed(() => Object.keys(dash.positions).map((code) => {
   const pos = dash.positions[code]
   const item = dash.items.find((i) => i.code === code)
@@ -97,6 +137,7 @@ const rows = computed(() => Object.keys(dash.positions).map((code) => {
   const hasQuote = price > 0
   const pnl = hasQuote ? (price - pos.buyPrice) * pos.shares : 0
   const pnlPct = hasQuote && pos.buyPrice > 0 ? (price - pos.buyPrice) / pos.buyPrice * 100 : 0
+  const levels = positionRiskLevels(pos, price)
   return {
     code,
     name: item?.name || pos.name || code,
@@ -108,6 +149,8 @@ const rows = computed(() => Object.keys(dash.positions).map((code) => {
     pnlPct,
     pnlText: hasQuote ? `${pnl >= 0 ? '+' : ''}${pnl.toFixed(0)}` : '--',
     pnlPctText: hasQuote ? `${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%` : '--',
+    stopText: levels ? Number(levels.stopLoss).toFixed(2) : '--',
+    takeText: levels ? Number(levels.takeProfit).toFixed(2) : '--',
   }
 }))
 
@@ -125,6 +168,8 @@ function reset() {
   form.name = ''
   form.buyPrice = 0
   form.shares = 100
+  form.stopLossPrice = undefined
+  form.takeProfitPrice = undefined
 }
 
 function applyHit(hit) {
@@ -141,8 +186,12 @@ function applyHit(hit) {
     form.buyPrice = pos.buyPrice
     form.shares = pos.shares
     form.name = pos.name || form.name
+    form.stopLossPrice = pos.stopLossPrice > 0 ? pos.stopLossPrice : undefined
+    form.takeProfitPrice = pos.takeProfitPrice > 0 ? pos.takeProfitPrice : undefined
   } else if (q?.price && !(form.buyPrice > 0)) {
     form.buyPrice = q.price
+    form.stopLossPrice = undefined
+    form.takeProfitPrice = undefined
   }
 }
 
@@ -191,7 +240,9 @@ watch(() => props.preset, (p) => {
   })
   if (p.pos?.buyPrice) form.buyPrice = p.pos.buyPrice
   if (p.pos?.shares) form.shares = p.pos.shares
-  else if (p.q?.price && !(form.buyPrice > 0)) form.buyPrice = p.q.price
+  form.stopLossPrice = p.pos?.stopLossPrice > 0 ? p.pos.stopLossPrice : undefined
+  form.takeProfitPrice = p.pos?.takeProfitPrice > 0 ? p.pos.takeProfitPrice : undefined
+  if (!p.pos && p.q?.price && !(form.buyPrice > 0)) form.buyPrice = p.q.price
 }, { immediate: true })
 
 watch(() => props.modelValue, (v) => {
@@ -218,12 +269,15 @@ async function save() {
     }
     const next = { ...dash.positions }
     const old = next[form.code]
-    next[form.code] = {
+    const row = {
       buyPrice: form.buyPrice,
       shares: form.shares,
       name: form.name || old?.name,
       date: old?.date || new Date().toISOString().slice(0, 10),
     }
+    if (form.stopLossPrice > 0) row.stopLossPrice = Number(form.stopLossPrice)
+    if (form.takeProfitPrice > 0) row.takeProfitPrice = Number(form.takeProfitPrice)
+    next[form.code] = row
     await dash.savePositions(next)
     ElMessage.success(`已保存 ${form.name || form.code}`)
     reset()

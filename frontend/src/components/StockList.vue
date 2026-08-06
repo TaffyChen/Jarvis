@@ -13,12 +13,13 @@
           <th>20日</th>
           <th>评分</th>
           <th>持仓</th>
+          <th>风控</th>
           <th>利空</th>
           <th></th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(card, idx) in cards" :key="card.code">
+        <tr v-for="(card, idx) in cards" :key="card.code" :class="{ 'row-alert': card.primaryAlert?.level === 'danger' }">
           <td>
             <span :class="['screen-rank', idx === 0 ? 'top1' : idx === 1 ? 'top2' : idx === 2 ? 'top3' : 'other']">
               {{ idx + 1 }}
@@ -38,7 +39,6 @@
           <td :class="chgClass(card.k?.change20d)">{{ fmtPct(card.k?.change20d) }}</td>
           <td>
             <b :style="{ color: scoreColor(card.score) }">{{ card.score }}</b>
-            <span v-if="card.cardAlerts?.length" class="list-alert" title="有预警">⚠</span>
           </td>
           <td>
             <template v-if="card.pos">
@@ -47,7 +47,17 @@
                 <span class="list-pnl-pct">{{ card.pnlPct >= 0 ? '+' : '' }}{{ card.pnlPct.toFixed(2) }}%</span>
               </div>
               <div class="list-code">{{ card.pos.shares }}股</div>
+              <div v-if="card.levels" class="list-levels">
+                止损{{ fmt(card.levels.stopLoss, 2) }}
+                / 止盈{{ fmt(card.levels.takeProfit, 2) }}
+              </div>
             </template>
+            <span v-else class="muted">—</span>
+          </td>
+          <td class="list-risk">
+            <div v-if="card.primaryAlert" :class="['list-alert-msg', card.primaryAlert.level]">
+              ⚠ {{ card.primaryAlert.msg }}
+            </div>
             <span v-else class="muted">—</span>
           </td>
           <td>
@@ -95,3 +105,15 @@ function scoreColor(s) {
   return 'var(--red)'
 }
 </script>
+
+<style scoped>
+.list-levels { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.list-risk { max-width: 180px; }
+.list-alert-msg {
+  font-size: 11px; line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.list-alert-msg.danger { color: var(--red); }
+.list-alert-msg.warning { color: var(--orange); }
+.row-alert td:first-child { box-shadow: inset 3px 0 0 var(--red); }
+</style>

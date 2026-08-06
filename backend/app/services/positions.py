@@ -29,6 +29,8 @@ def get_positions() -> list[dict[str, Any]]:
                 "code": code,
                 "buyPrice": p.get("buyPrice"),
                 "shares": p.get("shares"),
+                "stopLossPrice": p.get("stopLossPrice"),
+                "takeProfitPrice": p.get("takeProfitPrice"),
                 "price": q.get("price"),
                 "changePct": q.get("changePct"),
                 "name": q.get("name") or p.get("name"),
@@ -61,6 +63,8 @@ def upsert_position(
     shares: float | int | str,
     *,
     name: str | None = None,
+    stop_loss_price: float | int | str | None = None,
+    take_profit_price: float | int | str | None = None,
     ensure_in_universe: bool = True,
 ) -> dict[str, Any]:
     c = normalize_code(code)
@@ -78,6 +82,17 @@ def upsert_position(
     pos["shares"] = shares_f
     if name:
         pos["name"] = name
+    for raw, key in ((stop_loss_price, "stopLossPrice"), (take_profit_price, "takeProfitPrice")):
+        if raw in (None, ""):
+            continue
+        try:
+            lv = float(raw)
+        except (TypeError, ValueError):
+            continue
+        if lv > 0:
+            pos[key] = lv
+        else:
+            pos.pop(key, None)
     positions[c] = pos
     save_positions(positions)
 
@@ -91,6 +106,8 @@ def upsert_position(
         "code": c,
         "buyPrice": buy_f,
         "shares": shares_f,
+        "stopLossPrice": pos.get("stopLossPrice"),
+        "takeProfitPrice": pos.get("takeProfitPrice"),
         "need_quotes": need_quotes,
     }
 

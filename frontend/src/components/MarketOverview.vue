@@ -43,7 +43,7 @@
         >
           <span class="ball"></span>{{ l.name }}
         </div>
-        <div :class="['pos-rec', positionRec.level]">
+        <div :class="['pos-rec', positionRec.level]" :title="positionRec.detail || positionRec.text">
           {{ positionRec.redCount }}红灯 | {{ positionRec.text }}
         </div>
       </div>

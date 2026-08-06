@@ -115,6 +115,26 @@ def apply_strategy_patch(patch: dict | None) -> dict[str, Any]:
             pos["shares"] = shares_f
             if payload.get("name"):
                 pos["name"] = payload["name"]
+            for key_src, key_dst in (
+                ("stopLossPrice", "stopLossPrice"),
+                ("stop_loss_price", "stopLossPrice"),
+                ("takeProfitPrice", "takeProfitPrice"),
+                ("take_profit_price", "takeProfitPrice"),
+            ):
+                if key_src not in payload:
+                    continue
+                raw_lv = payload.get(key_src)
+                if raw_lv in (None, "", 0, "0"):
+                    pos.pop(key_dst, None)
+                    continue
+                try:
+                    lv = float(raw_lv)
+                except (TypeError, ValueError):
+                    continue
+                if lv > 0:
+                    pos[key_dst] = lv
+                else:
+                    pos.pop(key_dst, None)
             positions[code] = pos
             if code not in market.stock_codes:
                 market.stock_codes.append(code)

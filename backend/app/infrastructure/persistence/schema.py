@@ -85,6 +85,7 @@ _TABLES_SQL = (
     """
     CREATE TABLE IF NOT EXISTS conversations (
       id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+      session_id BIGINT DEFAULT NULL COMMENT '所属会话，可空（历史孤儿轮次）',
       ts DATETIME(3) NOT NULL COMMENT '对话时间（UTC）',
       question TEXT NOT NULL COMMENT '用户问题',
       answer MEDIUMTEXT COMMENT '模型回答摘要',
@@ -97,9 +98,40 @@ _TABLES_SQL = (
       orchestrator VARCHAR(32) NOT NULL DEFAULT 'graph' COMMENT '编排器标识',
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '入库时间',
       PRIMARY KEY (id),
-      KEY idx_conv_ts (ts)
+      KEY idx_conv_ts (ts),
+      KEY idx_conv_session (session_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-      COMMENT='站内对话流水（原 conversations.json，保留最近100条）'
+      COMMENT='站内对话流水（按会话挂载，保留最近若干条）'
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS chat_sessions (
+      id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+      title VARCHAR(128) NOT NULL DEFAULT '' COMMENT '会话标题（首问摘要）',
+      created_at DATETIME(3) NOT NULL COMMENT '创建时间（UTC）',
+      updated_at DATETIME(3) NOT NULL COMMENT '最近活跃（UTC）',
+      PRIMARY KEY (id),
+      KEY idx_chat_session_updated (updated_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      COMMENT='站内对话会话（左侧历史列表）'
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_briefs (
+      id BIGINT NOT NULL AUTO_INCREMENT COMMENT '版本主键',
+      brief_date DATE NOT NULL COMMENT '交易日（本地日历日）',
+      snapshot_json JSON NOT NULL COMMENT '该版冻结盘面硬数据',
+      report_md MEDIUMTEXT NOT NULL COMMENT '五段简报正文 Markdown',
+      comments_json JSON NOT NULL COMMENT '挂在本版的批注 [{ts,text}]',
+      headline VARCHAR(255) NOT NULL DEFAULT '' COMMENT '一句话定性摘要',
+      model VARCHAR(64) NOT NULL DEFAULT '' COMMENT '生成所用模型',
+      is_final TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否当日定稿（同日至多一条）',
+      created_at DATETIME(3) NOT NULL COMMENT '生成时间（UTC）',
+      updated_at DATETIME(3) NOT NULL COMMENT '最近更新时间（UTC）',
+      PRIMARY KEY (id),
+      KEY idx_brief_date (brief_date),
+      KEY idx_brief_created (created_at),
+      KEY idx_brief_final (brief_date, is_final)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      COMMENT='盘面简报：同日可多版本追加，定稿仅打标不覆盖'
     """,
 )
 
@@ -111,3 +143,61 @@ def ensure_schema() -> None:
     with conn.cursor() as cur:
         for sql in _TABLES_SQL:
             cur.execute(sql)
+        _ensure_conversation_session_column(cur)
+        _migrate_daily_reviews_to_briefs(cur)
+
+
+def _ensure_conversation_session_column(cur) -> None:
+    """旧库 conversations 无 session_id 时补列。"""
+    cur.execute(
+        """
+        SELECT COUNT(*) AS c FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'conversations'
+          AND COLUMN_NAME = 'session_id'
+        """
+    )
+    row = cur.fetchone() or {}
+    if int(row.get("c") or 0) > 0:
+        return
+    cur.execute(
+        """
+        ALTER TABLE conversations
+          ADD COLUMN session_id BIGINT DEFAULT NULL COMMENT '所属会话，可空' AFTER id,
+          ADD KEY idx_conv_session (session_id)
+        """
+    )
+
+
+def _migrate_daily_reviews_to_briefs(cur) -> None:
+    """旧表 daily_reviews（一天一条）迁入 market_briefs 首版。"""
+    cur.execute(
+        """
+        SELECT COUNT(*) AS c FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'daily_reviews'
+        """
+    )
+    if int((cur.fetchone() or {}).get("c") or 0) == 0:
+        return
+    cur.execute(
+        """
+        SELECT COUNT(*) AS c FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'market_briefs'
+        """
+    )
+    if int((cur.fetchone() or {}).get("c") or 0) == 0:
+        return
+    cur.execute("SELECT COUNT(*) AS c FROM market_briefs")
+    if int((cur.fetchone() or {}).get("c") or 0) > 0:
+        return
+    cur.execute(
+        """
+        INSERT INTO market_briefs (
+          brief_date, snapshot_json, report_md, comments_json, headline, model,
+          is_final, created_at, updated_at
+        )
+        SELECT review_date, snapshot_json, report_md, comments_json, headline, model,
+               1, created_at, updated_at
+        FROM daily_reviews
+        """
+    )

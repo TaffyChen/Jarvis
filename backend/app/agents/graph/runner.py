@@ -32,16 +32,21 @@ def _dedupe_sources(items: list[dict]) -> list[dict]:
     return out[:12]
 
 
-async def run_decision_graph(question: str, history: list[dict] | None = None) -> dict[str, Any]:
+async def run_decision_graph(
+    question: str,
+    history: list[dict] | None = None,
+    session_id: int | None = None,
+) -> dict[str, Any]:
     """跑完整张决策图，并打包成 API 响应。
 
     入参：
       question — 用户本轮问题
       history  — 可选历史消息（role/content）
+      session_id — 可选会话 id；空则自动新建
 
     出参关键字段：
       answer / sources / patch / memoryPatch / memoriesUsed /
-      toolTrace（过程） / orchestrator=\"graph\" / model
+      toolTrace（过程） / orchestrator=\"graph\" / model / sessionId
     """
     graph = get_decision_graph()
     # ainvoke：异步执行整张图，直到走到 END
@@ -67,7 +72,7 @@ async def run_decision_graph(question: str, history: list[dict] | None = None) -
     tool_trace = final.get("tool_trace") or []
     retrieve_queries = final.get("retrieve_queries") or []
 
-    append_conversation(
+    saved = append_conversation(
         {
             "ts": datetime.now(timezone.utc).isoformat(),
             "question": question,
@@ -81,7 +86,8 @@ async def run_decision_graph(question: str, history: list[dict] | None = None) -
             "toolTrace": [{"tool": t.get("tool"), "args": t.get("args")} for t in tool_trace],
             "retrieveQueries": retrieve_queries,
             "orchestrator": "graph",
-        }
+        },
+        session_id=session_id,
     )
 
     return {
@@ -94,4 +100,5 @@ async def run_decision_graph(question: str, history: list[dict] | None = None) -
         "retrieveQueries": retrieve_queries,
         "orchestrator": "graph",
         "model": final.get("model") or settings.llm_model,
+        "sessionId": saved.get("sessionId"),
     }

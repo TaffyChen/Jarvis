@@ -43,8 +43,12 @@ export const api = {
   screen: () => http.get('/screen').then((r) => r.data),
   auction: () => http.get('/auction').then((r) => r.data),
   sectorFlow: () => http.get('/sector-flow').then((r) => r.data),
-  chat: (question, history = []) =>
-    http.post('/jarvis/chat', { question, history }).then((r) => r.data),
+  chat: (question, history = [], sessionId = null) =>
+    http.post('/jarvis/chat', { question, history, sessionId }).then((r) => r.data),
+  chatSessions: () => http.get('/jarvis/chat/sessions').then((r) => r.data),
+  createChatSession: (title = '') =>
+    http.post('/jarvis/chat/sessions', { title }).then((r) => r.data),
+  chatSession: (id) => http.get(`/jarvis/chat/sessions/${id}`).then((r) => r.data),
   applyPatch: (patch, accept = true) =>
     http.post('/jarvis/patches/apply', { patch, accept }).then((r) => r.data),
   applyMemory: (patch, accept = true, sourceQuestion = '') =>
@@ -68,4 +72,12 @@ export const api = {
   searchKb: (query, top_k = 5) =>
     http.post('/jarvis/kb/search', { query, top_k }).then((r) => r.data),
   reindex: () => http.post('/jarvis/kb/reindex').then((r) => r.data),
+  reviewSnapshot: () => http.get('/jarvis/review/snapshot').then((r) => r.data),
+  reviewDays: () => http.get('/jarvis/review/days').then((r) => r.data),
+  reviewDay: (date) => http.get(`/jarvis/review/days/${date}`).then((r) => r.data),
+  reviewVersion: (id) => http.get(`/jarvis/review/versions/${id}`).then((r) => r.data),
+  reviewGenerate: (body = {}) => http.post('/jarvis/review/generate', body).then((r) => r.data),
+  reviewComment: (id, text) =>
+    http.post(`/jarvis/review/versions/${id}/comments`, { text }).then((r) => r.data),
+  reviewMarkFinal: (id) => http.post(`/jarvis/review/versions/${id}/final`).then((r) => r.data),
 }

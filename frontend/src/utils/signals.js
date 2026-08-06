@@ -17,6 +17,39 @@ const BIG_DROP_PCT = -5
 const LEVER_KEY = 'jarvis_lever5_override'
 const MAIN_RISE_ICE_KEY = 'jarvis_main_rise_ice'
 
+export { STOP_LOSS_PCT, PROFIT_TAKE_PCT }
+
+/**
+ * 持仓止损/止盈参考价。
+ * 有自定义价则用自定义；否则按全局比例（成本 -8% / +10%）自动算。
+ * 规则仍是主裁判；价格是辅助触发与展示。
+ */
+export function positionRiskLevels(pos, price) {
+  const buy = Number(pos?.buyPrice) || 0
+  if (!(buy > 0)) return null
+  const customSl = Number(pos?.stopLossPrice)
+  const customTp = Number(pos?.takeProfitPrice)
+  const hasCustomSl = Number.isFinite(customSl) && customSl > 0
+  const hasCustomTp = Number.isFinite(customTp) && customTp > 0
+  const autoStopLoss = buy * (1 + STOP_LOSS_PCT / 100)
+  const autoTakeProfit = buy * (1 + PROFIT_TAKE_PCT / 100)
+  const stopLoss = hasCustomSl ? customSl : autoStopLoss
+  const takeProfit = hasCustomTp ? customTp : autoTakeProfit
+  const p = Number(price) || 0
+  return {
+    stopLoss,
+    takeProfit,
+    stopLossSource: hasCustomSl ? 'custom' : 'auto',
+    takeProfitSource: hasCustomTp ? 'custom' : 'auto',
+    autoStopLoss,
+    autoTakeProfit,
+    distToStopPct: p > 0 ? ((p - stopLoss) / stopLoss) * 100 : null,
+    distToTakePct: p > 0 ? ((takeProfit - p) / p) * 100 : null,
+    stopHit: p > 0 && p <= stopLoss,
+    takeHit: p > 0 && p >= takeProfit,
+  }
+}
+
 export function getLeverOverride() {
   return localStorage.getItem(LEVER_KEY) === '1'
 }
@@ -157,11 +190,73 @@ export function computeLamps({ items, quotes, klines, positions, overseas }) {
 
 export function positionRecFromLamps(lamps) {
   const redCount = lamps.filter((l) => l.red).length
-  if (redCount >= 4) return { redCount, text: '仓位归零！只卖不买', level: 'danger' }
-  if (redCount === 3) return { redCount, text: '仓位上限1成', level: 'danger' }
-  if (redCount === 2) return { redCount, text: '仓位上限3成', level: 'warning' }
-  if (redCount === 1) return { redCount, text: '仓位上限5成', level: 'warning' }
-  return { redCount, text: '仓位上限8成', level: 'safe' }
+  if (redCount >= 4) return { redCount, text: '仓位归零！只卖不买', level: 'danger', lampCap: 0 }
+  if (redCount === 3) return { redCount, text: '仓位上限1成', level: 'danger', lampCap: 0.1 }
+  if (redCount === 2) return { redCount, text: '仓位上限3成', level: 'warning', lampCap: 0.3 }
+  if (redCount === 1) return { redCount, text: '仓位上限5成', level: 'warning', lampCap: 0.5 }
+  return { redCount, text: '仓位上限8成', level: 'safe', lampCap: 0.8 }
+}
+
+/** 上涨占比 <40% 或上涨家数 <1500 → 情绪退潮，仓位硬顶 3 成且只卖不买 */
+export function sentimentRetreat(marketBreadth, breadth) {
+  const mb = marketBreadth?.total > 0 ? marketBreadth : breadth
+  if (!mb?.total) return null
+  const upPct = mb.up / mb.total
+  if (!(upPct < 0.4 || (marketBreadth?.total > 0 && mb.up < 1500))) return null
+  return {
+    active: true,
+    upPct,
+    up: mb.up,
+    total: mb.total,
+    cap: 0.3,
+    buyAllowed: false,
+  }
+}
+
+/**
+ * 有效仓位 = min(五灯上限, 情绪退潮上限)。
+ * 两套规则并行时取更严，避免「0红→8成」与「情绪退潮→3成」并排打架。
+ */
+export function effectivePositionRec(ctx) {
+  const lamps = ctx.lamps || computeLamps(ctx)
+  const base = positionRecFromLamps(lamps)
+  const retreat = sentimentRetreat(ctx.marketBreadth, ctx.breadth)
+  const lampCap = base.lampCap ?? 0.8
+  if (!retreat) {
+    return {
+      ...base,
+      lampCap,
+      sentimentCap: null,
+      cap: lampCap,
+      buyAllowed: lampCap > 0,
+      detail: '',
+    }
+  }
+  const cap = Math.min(lampCap, retreat.cap)
+  const tighter = retreat.cap < lampCap
+  let text
+  let level = base.level
+  if (cap <= 0) {
+    text = '仓位归零！只卖不买'
+    level = 'danger'
+  } else if (tighter) {
+    text = `有效≤${Math.round(cap * 10)}成（情绪退潮）`
+    level = level === 'safe' ? 'warning' : level
+  } else {
+    text = base.text
+  }
+  return {
+    ...base,
+    lampCap,
+    sentimentCap: retreat.cap,
+    cap,
+    buyAllowed: false,
+    level,
+    text,
+    detail: tighter
+      ? `五灯${base.redCount}红本可${Math.round(lampCap * 10)}成，情绪退潮（上涨${(retreat.upPct * 100).toFixed(0)}%/${retreat.up}家）压至${Math.round(cap * 10)}成，只卖不买`
+      : `情绪退潮中；五灯已更严（≤${Math.round(lampCap * 10)}成）`,
+  }
 }
 
 export function computeAlerts(ctx) {
@@ -177,16 +272,17 @@ export function computeAlerts(ctx) {
   if (redCount >= 4) alerts.push({ level: 'danger', code: 'ALL', name: '全部持仓', msg: `五灯${redCount}红！仓位归零`, action: '立即清仓' })
   else if (redCount === 3) alerts.push({ level: 'danger', code: 'ALL', name: '全部持仓', msg: '五灯3红，仓位上限1成', action: '减仓至1成' })
 
-  const mb = marketBreadth?.total > 0 ? marketBreadth : breadth
-  if (mb?.total > 0) {
-    const upPct = mb.up / mb.total
-    if (upPct < 0.4 || (marketBreadth?.total > 0 && mb.up < 1500)) {
-      alerts.push({
-        level: 'warning', code: 'ALL', name: '情绪退潮',
-        msg: `上涨${(upPct * 100).toFixed(0)}%（${mb.up}家）`,
-        action: '只卖不买，仓位≤3成',
-      })
-    }
+  const retreat = sentimentRetreat(marketBreadth, breadth)
+  if (retreat) {
+    const lampCap = positionRecFromLamps(lamps).lampCap ?? 0.8
+    const effective = Math.min(lampCap, retreat.cap)
+    alerts.push({
+      level: 'warning', code: 'ALL', name: '情绪退潮',
+      msg: `上涨${(retreat.upPct * 100).toFixed(0)}%（${retreat.up}家）`,
+      action: lampCap > retreat.cap
+        ? `只卖不买，有效仓位≤${Math.round(effective * 10)}成（压过五灯${Math.round(lampCap * 10)}成）`
+        : `只卖不买，仓位≤${Math.round(effective * 10)}成`,
+    })
   }
 
   heldCodes.forEach((fullCode) => {
@@ -238,11 +334,30 @@ export function computeAlerts(ctx) {
         alerts.push({ level: 'danger', code: fullCode, name, msg: `高位巨量长阴 量比${volRatio.toFixed(1)}`, action: '铁律5：清仓' })
       }
     }
-    if (pnlPct >= PROFIT_TAKE_PCT) {
+    const levels = positionRiskLevels(pos, price)
+    if (levels?.takeHit) {
+      const src = levels.takeProfitSource === 'custom' ? '自定义止盈' : '止盈线'
+      alerts.push({
+        level: 'warning',
+        code: fullCode,
+        name,
+        msg: `现价触及${src}(${levels.takeProfit.toFixed(2)})`,
+        action: '强制兑现部分',
+      })
+    } else if (levels?.takeProfitSource === 'auto' && pnlPct >= PROFIT_TAKE_PCT) {
       alerts.push({ level: 'warning', code: fullCode, name, msg: `盈利${pnlPct.toFixed(1)}%达止盈线`, action: '强制兑现部分' })
     }
-    if (pnlPct <= STOP_LOSS_PCT || drawdownFromHigh <= STOP_LOSS_PCT) {
-      alerts.push({ level: 'danger', code: fullCode, name, msg: `触及止损线`, action: '立即止损卖出' })
+    if (levels?.stopHit) {
+      const src = levels.stopLossSource === 'custom' ? '自定义止损' : '止损线'
+      alerts.push({
+        level: 'danger',
+        code: fullCode,
+        name,
+        msg: `现价触及${src}(${levels.stopLoss.toFixed(2)})`,
+        action: '立即止损卖出',
+      })
+    } else if (levels?.stopLossSource === 'auto' && drawdownFromHigh <= STOP_LOSS_PCT) {
+      alerts.push({ level: 'danger', code: fullCode, name, msg: `自高点回撤触及止损线`, action: '立即止损卖出' })
     }
     if (q.weibi && q.weibi < -30) {
       alerts.push({ level: 'warning', code: fullCode, name, msg: `委比${q.weibi.toFixed(1)}%恶化`, action: '注意卖压' })

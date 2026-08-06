@@ -17,13 +17,14 @@
       <p class="rule danger">1. 破20日线减半仓，破60日线或次日未站回清仓</p>
       <p class="rule danger">2. 浮盈超10%后从高点回撤3%~5%离场</p>
       <p class="rule danger">3. 浮盈翻绿保本出局</p>
-      <p class="rule warn">4. 情绪退潮只卖不买，仓位≤3成</p>
+      <p class="rule warn">4. 情绪退潮只卖不买，仓位≤3成；与五灯并存时取更严</p>
       <p class="rule danger">5. 高位巨量长阴线清仓</p>
     </div>
     <div class="strategy-block">
       <h4>五灯仓位</h4>
       <p class="rule">换手拥挤 / 杠杆5连降 / 业绩验证期 / 海外隔夜大跌 / 持仓破20日线过半</p>
       <p class="rule">0红8成 · 1红5成 · 2红3成 · 3红1成 · 4-5红归零</p>
+      <p class="rule warn">有效仓位 = min(五灯上限, 情绪退潮3成)</p>
       <p class="rule warn">海外阈值：标普日跌≤-1.5% 或 纳指ETF≤-2%</p>
     </div>
   </el-drawer>

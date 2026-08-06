@@ -12,7 +12,7 @@ from __future__ import annotations
 from app.services.analyses import get_analysis, list_analyses, upsert_analysis
 from app.services.auth import login, logout, me
 from app.services.codes import add_code, add_codes, remove_codes, search_codes
-from app.services.conversations import append_conversation, list_conversations
+from app.services.conversations import append_conversation, create_chat_session, list_chat_sessions, list_conversations, get_chat_session
 from app.services.journal import add_journal, get_journal, list_journal
 from app.services.knowledge import (
     delete_kb_document,
@@ -103,6 +103,9 @@ __all__ = [
     "add_journal",
     "list_conversations",
     "append_conversation",
+    "create_chat_session",
+    "list_chat_sessions",
+    "get_chat_session",
     "list_memories",
     "health_snapshot",
     "quotes_snapshot",

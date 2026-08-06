@@ -54,6 +54,7 @@ GRAPH_SYSTEM = (
 - 需要行情、评分、持仓、分析时再调工具；不要编造工具未返回的数据，也不要编造未检索到的规则。
 - 预检索不够时才再调 search_knowledge / search_memory，并换更具体的检索词。
 - 工具都是只读的；写入仍只能通过回答末尾的 strategy_patch / memory_patch 提案。
+- 用户要加观察池/持仓时：本轮必须附 ```json strategy_patch```，禁止只口头说「点采纳才会写入」却不附 JSON。
 - 尽量少轮工具调用（通常 1～3 轮）后给出可执行结论：先结论，再依据。
 """
 )
@@ -88,9 +89,10 @@ def bootstrap(state: GraphState) -> dict:
         norms = [c for c in norms if c]
         hint += (
             "\n用户要求写入本地系统（添加标的/持仓）。"
-            "必须在最终回答输出 strategy_patch："
+            "必须在最终回答输出 strategy_patch（```json``` 代码块）："
             "加观察池用 target=codes action=add；"
             "加持仓用 target=positions action=upsert（需 buyPrice 与 shares）。"
+            "禁止只口头承诺「会输出补丁/点采纳」；本轮就要附上 JSON。"
             "未经界面确认不要声称已添加。"
         )
         if norms:

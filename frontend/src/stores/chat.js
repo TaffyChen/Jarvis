@@ -1,6 +1,21 @@
 import { defineStore } from 'pinia'
 import { api } from '../api'
 
+function groupSessions(sessions) {
+  const groups = [
+    { label: '今天', items: [] },
+    { label: '更早', items: [] },
+  ]
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+  for (const s of sessions || []) {
+    const t = s.updatedAt ? new Date(s.updatedAt).getTime() : 0
+    if (t >= start.getTime()) groups[0].items.push(s)
+    else groups[1].items.push(s)
+  }
+  return groups.filter((g) => g.items.length)
+}
+
 export const useChatStore = defineStore('chat', {
   state: () => ({
     messages: [],
@@ -8,8 +23,48 @@ export const useChatStore = defineStore('chat', {
     lastPatch: null,
     lastMemoryPatch: null,
     open: true,
+    sessionId: null,
+    sessions: [],
+    sessionsLoading: false,
+    sidebarOpen: true,
   }),
+  getters: {
+    sessionGroups(state) {
+      return groupSessions(state.sessions)
+    },
+  },
   actions: {
+    async refreshSessions() {
+      this.sessionsLoading = true
+      try {
+        const r = await api.chatSessions()
+        this.sessions = r.sessions || []
+      } catch {
+        this.sessions = []
+      } finally {
+        this.sessionsLoading = false
+      }
+    },
+    async newSession() {
+      try {
+        const r = await api.createChatSession('')
+        this.sessionId = r.session?.id ?? null
+      } catch {
+        this.sessionId = null
+      }
+      this.messages = []
+      this.lastPatch = null
+      this.lastMemoryPatch = null
+      await this.refreshSessions()
+    },
+    async openSession(id) {
+      if (!id || this.sending) return
+      const r = await api.chatSession(id)
+      this.sessionId = r.session?.id ?? id
+      this.messages = r.messages || []
+      this.lastPatch = null
+      this.lastMemoryPatch = null
+    },
     async send(text) {
       const q = (text || '').trim()
       if (!q || this.sending) return
@@ -20,7 +75,8 @@ export const useChatStore = defineStore('chat', {
           .filter((m) => m.role === 'user' || m.role === 'assistant')
           .slice(-8)
           .map((m) => ({ role: m.role, content: m.content }))
-        const res = await api.chat(q, history.slice(0, -1))
+        const res = await api.chat(q, history.slice(0, -1), this.sessionId)
+        if (res.sessionId != null) this.sessionId = res.sessionId
         this.messages.push({
           role: 'assistant',
           content: res.answer || '',
@@ -35,6 +91,7 @@ export const useChatStore = defineStore('chat', {
         })
         this.lastPatch = res.patch || null
         this.lastMemoryPatch = res.memoryPatch || null
+        await this.refreshSessions()
       } catch (e) {
         this.messages.push({
           role: 'assistant',

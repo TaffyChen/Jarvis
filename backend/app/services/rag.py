@@ -17,6 +17,7 @@ _HOLD_KEYS = ("持有", "减仓", "清仓", "仓位", "还能", "要不要", "�
 _MAIN_KEYS = ("主升", "冰点", "第一天")
 _MOOD_KEYS = ("情绪", "五灯", "市场", "灯")
 _RISK_KEYS = ("利空", "门禁", "复核", "风险")
+_REVIEW_KEYS = ("复盘", "日终", "资金故事", "验证窗口")
 
 
 def expand_retrieval_queries(question: str, history: list[dict] | None = None) -> list[str]:
@@ -53,6 +54,8 @@ def expand_retrieval_queries(question: str, history: list[dict] | None = None) -
         extra = "市场情绪四条件 五灯仓位"
     elif any(k in q for k in _RISK_KEYS):
         extra = "三原则两防线 评分与分类 利空"
+    elif any(k in q for k in _REVIEW_KEYS):
+        extra = "日终复盘 五灯仓位 情绪退潮"
     if extra:
         queries.append(f"{q} {extra}".strip())
 

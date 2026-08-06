@@ -1,6 +1,6 @@
 <template>
   <MarketOverview
-    v-if="dash.view !== 'knowledge' && dash.view !== 'journal'"
+    v-if="dash.view !== 'knowledge' && dash.view !== 'journal' && dash.view !== 'review'"
     :indices="dash.indices"
     :market-breadth="dash.marketBreadth"
     :overseas="dash.overseas"
@@ -11,7 +11,7 @@
   />
 
   <div
-    v-if="dash.view !== 'sectorFlow' && dash.view !== 'knowledge' && dash.view !== 'journal'"
+    v-if="dash.view !== 'sectorFlow' && dash.view !== 'knowledge' && dash.view !== 'journal' && dash.view !== 'review'"
     class="mainrise-bar"
     role="button"
     tabindex="0"
@@ -49,6 +49,7 @@
   />
   <KnowledgePanel v-else-if="dash.view === 'knowledge'" />
   <JournalPanel v-else-if="dash.view === 'journal'" />
+  <ReviewPanel v-else-if="dash.view === 'review'" />
   <AuctionPanel
     v-else
     :rows="dash.auctionResults"
@@ -68,6 +69,7 @@ import ScreenPanel from '../components/ScreenPanel.vue'
 import AuctionPanel from '../components/AuctionPanel.vue'
 import KnowledgePanel from '../components/KnowledgePanel.vue'
 import JournalPanel from '../components/JournalPanel.vue'
+import ReviewPanel from '../components/ReviewPanel.vue'
 import StocksView from './StocksView.vue'
 
 defineProps({

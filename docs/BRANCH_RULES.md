@@ -1,8 +1,8 @@
 # 分支与协作规则
 
-默认分支是 `main`。目标：**只有维护者能把代码合进 `main`，其他人先开分支再提 PR，由 `@TaffyChen` 审核。**
+默认分支是 `main`。目标：**协作者不能直接改 `main`**；维护者 `@TaffyChen` 审 PR。你本人已在 Ruleset 开 **bypass**，热修可直推。
 
-## 日常怎么做
+## 协作者怎么做
 
 ```bash
 git clone https://github.com/TaffyChen/Jarvis.git
@@ -15,9 +15,23 @@ git push -u origin feature/你的主题
 
 在 GitHub 上对 `main` 开 Pull Request，等 **Code Owner（TaffyChen）Approve** 后再合并。
 
-不要直接：
+协作者不要：
 
 ```bash
+git push origin main
+```
+
+## 维护者（你）
+
+- Ruleset `protect-main` 已把你加入 **Bypass list**
+- 可直接 `git push origin main`（远程会提示 Bypassed rule violations，属正常）
+- 大改动仍建议走分支 + PR，方便自己留记录；小改 / 文档 / 热修可直推
+
+推之前确认已与远程对齐，避免 non-fast-forward：
+
+```bash
+git pull --ff-only origin main
+# 提交后
 git push origin main
 ```
 
@@ -27,14 +41,13 @@ git push origin main
 
 | 规则 | 含义 |
 |------|------|
-| 必须走 Pull Request | 不能直接推 `main` |
+| 必须走 Pull Request | 无 bypass 时不能直接推 `main` |
 | 至少 1 个 Approve | 没人点赞不能合 |
 | Require review from Code Owners | 必须 `@TaffyChen` 审（见 `.github/CODEOWNERS`） |
 | Dismiss stale reviews | 又推了新 commit，旧 Approve 作废 |
 | Block force pushes | 禁止强推 `main` |
 | Restrict deletions | 禁止删除 `main` |
-
-仓库所有者在 Ruleset 里有 bypass，必要时可直接推 `main` 做热修；协作者没有。
+| Bypass（维护者） | 所有者可绕过上述限制直推；协作者没有 |
 
 协作者权限请只给 **Write**，不要给 Admin。更稳妥的做法是不加人、让对方 **Fork 后提 PR**。
 
@@ -57,4 +70,4 @@ git push origin main
 
 ## 改 Ruleset
 
-GitHub → 本仓库 → **Settings → Rules → Rulesets → protect-main**。
+GitHub → 本仓库 → **Settings → Rules → Rulesets → protect-main**（含 Bypass list）。

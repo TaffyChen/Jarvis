@@ -7,13 +7,21 @@ from typing import Any, AsyncIterator
 from app.agents.graph.runner import run_decision_graph
 
 
-async def ask_jarvis(question: str, history: list[dict] | None = None) -> dict[str, Any]:
-    return await run_decision_graph(question, history)
+async def ask_jarvis(
+    question: str,
+    history: list[dict] | None = None,
+    session_id: int | None = None,
+) -> dict[str, Any]:
+    return await run_decision_graph(question, history, session_id=session_id)
 
 
-async def ask_jarvis_stream(question: str, history: list[dict] | None = None) -> AsyncIterator[str]:
+async def ask_jarvis_stream(
+    question: str,
+    history: list[dict] | None = None,
+    session_id: int | None = None,
+) -> AsyncIterator[str]:
     """Yield SSE data lines。"""
-    result = await ask_jarvis(question, history)
+    result = await ask_jarvis(question, history, session_id=session_id)
     answer = result["answer"]
     step = 48
     for i in range(0, len(answer), step):
@@ -29,6 +37,7 @@ async def ask_jarvis_stream(question: str, history: list[dict] | None = None) ->
             "retrieveQueries": result.get("retrieveQueries") or [],
             "orchestrator": result.get("orchestrator"),
             "model": result["model"],
+            "sessionId": result.get("sessionId"),
         },
         ensure_ascii=False,
     )

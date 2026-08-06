@@ -48,6 +48,8 @@ def reset_memory() -> None:
         "memories": [],
         "proposals": [],
         "conversations": [],
+        "chat_sessions": [],
+        "market_briefs": [],
         "kb_meta": {},
     }
 

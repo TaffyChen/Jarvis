@@ -49,7 +49,7 @@
 ## 总览：三条主链路
 
 ```
-① 知识入库（离线）     knowledge/*.md ──reindex──► Milvus / 本地向量
+① 知识入库（离线）     knowledge/*.md ──reindex──► Milvus（产品路径）
 ② 站内对话（在线 RAG）  问题 ──rag──► 原文注入 ──DeepSeek──► 工具/结论/HITL
 ③ 业务数据             MySQL 专用表（持仓/分析/日记/沉淀/对话）+ RBAC
 ```
@@ -189,8 +189,11 @@ knowledge/*.md  ──reindex──►  Milvus jarvis_kb
 ## 前端要点
 
 - Vue3 + Pinia；Element Plus 主要用于 dialog / table / 登录
-- 自选卡片 / 列表；深浅主题见 `docs/DESIGN.md`
-- 管理员侧栏「知识库」：编辑 md、预览切块、试检索、重建索引
+- 页面拆分：`views/WorkspaceView.vue` / `StocksView.vue`；自选卡片 / 列表
+- **纪律日记**独立页：`JournalPanel.vue`（关键词 + 级别筛选；API 亦支持 `q` / `level` / `code`）
+- 利空门禁：卡片「通过 / 未过」写入分析底稿，约束「可买入」
+- 深浅主题见 `docs/DESIGN.md`；产品能力总览见根目录 `README.md`
+- 管理员侧栏「知识库」：编辑 md、上传、预览切块、试检索、重建索引
 - 对话抽屉展示 `toolTrace`（含 `rag_retrieve`）与依据来源
 - 请求头 `x-jarvis-token`
 
@@ -204,8 +207,9 @@ knowledge/*.md  ──reindex──►  Milvus jarvis_kb
 bash scripts/mcp.sh
 ```
 
-决策图逐步走查：`docs/decision-graph.md`。
+决策图逐步走查：`docs/decision-graph.md`。  
+协作与 bypass：`docs/BRANCH_RULES.md`。
 
 ---
 
-最后更新时间：2026-08-05
+最后更新时间：2026-08-06

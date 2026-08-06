@@ -101,6 +101,7 @@ CREATE TABLE IF NOT EXISTS strategy_proposals (
 
 CREATE TABLE IF NOT EXISTS conversations (
   id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+  session_id BIGINT DEFAULT NULL COMMENT '所属会话，可空（历史孤儿轮次）',
   ts DATETIME(3) NOT NULL COMMENT '对话时间（UTC）',
   question TEXT NOT NULL COMMENT '用户问题',
   answer MEDIUMTEXT COMMENT '模型回答摘要',
@@ -113,9 +114,38 @@ CREATE TABLE IF NOT EXISTS conversations (
   orchestrator VARCHAR(32) NOT NULL DEFAULT 'graph' COMMENT '编排器标识',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '入库时间',
   PRIMARY KEY (id),
-  KEY idx_conv_ts (ts)
+  KEY idx_conv_ts (ts),
+  KEY idx_conv_session (session_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='站内对话流水（原 conversations.json，保留最近100条）';
+  COMMENT='站内对话流水（按会话挂载）';
+
+CREATE TABLE IF NOT EXISTS chat_sessions (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+  title VARCHAR(128) NOT NULL DEFAULT '' COMMENT '会话标题（首问摘要）',
+  created_at DATETIME(3) NOT NULL COMMENT '创建时间（UTC）',
+  updated_at DATETIME(3) NOT NULL COMMENT '最近活跃（UTC）',
+  PRIMARY KEY (id),
+  KEY idx_chat_session_updated (updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='站内对话会话（左侧历史列表）';
+
+CREATE TABLE IF NOT EXISTS market_briefs (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '版本主键',
+  brief_date DATE NOT NULL COMMENT '交易日（本地日历日）',
+  snapshot_json JSON NOT NULL COMMENT '该版冻结盘面硬数据',
+  report_md MEDIUMTEXT NOT NULL COMMENT '五段简报正文 Markdown',
+  comments_json JSON NOT NULL COMMENT '挂在本版的批注 [{ts,text}]',
+  headline VARCHAR(255) NOT NULL DEFAULT '' COMMENT '一句话定性摘要',
+  model VARCHAR(64) NOT NULL DEFAULT '' COMMENT '生成所用模型',
+  is_final TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否当日定稿（同日至多一条）',
+  created_at DATETIME(3) NOT NULL COMMENT '生成时间（UTC）',
+  updated_at DATETIME(3) NOT NULL COMMENT '最近更新时间（UTC）',
+  PRIMARY KEY (id),
+  KEY idx_brief_date (brief_date),
+  KEY idx_brief_created (created_at),
+  KEY idx_brief_final (brief_date, is_final)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='盘面简报：同日可多版本追加，定稿仅打标不覆盖';
 
 CREATE TABLE IF NOT EXISTS roles (
   id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键',

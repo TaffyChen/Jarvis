@@ -15,7 +15,8 @@ import {
   computeLamps,
   computeMainRise,
   effectiveRating,
-  positionRecFromLamps,
+  effectivePositionRec,
+  positionRiskLevels,
   toggleLeverOverride,
   toggleMainRiseIce,
 } from '../utils/signals'
@@ -126,7 +127,7 @@ export const useDashboardStore = defineStore('dashboard', {
       return computeLamps(this.ctx)
     },
     positionRec() {
-      return positionRecFromLamps(this.lamps)
+      return effectivePositionRec(this.ctx)
     },
     alerts() {
       return computeAlerts(this.ctx)
@@ -168,12 +169,14 @@ export const useDashboardStore = defineStore('dashboard', {
         const riskCleared = isRiskCleared(a, this.staleDays)
         const belowMA20 = k.ma20 > 0 && q.price > 0 && q.price < k.ma20
         const cardAlerts = this.alerts.filter((x) => x.code === item.code)
+        const primaryAlert = cardAlerts[0] || null
         let pnl = 0
         let pnlPct = 0
         if (pos && q.price > 0) {
           pnl = (q.price - pos.buyPrice) * pos.shares
           pnlPct = pos.buyPrice > 0 ? (q.price - pos.buyPrice) / pos.buyPrice * 100 : 0
         }
+        const levels = pos ? positionRiskLevels(pos, q.price) : null
         const rawScoreRating = score != null ? (score >= 60 ? '可买入' : null) : null
         return {
           ...item,
@@ -190,6 +193,8 @@ export const useDashboardStore = defineStore('dashboard', {
           belowMA20,
           sparkHtml: makeSparkline(k.sparkline || []),
           cardAlerts,
+          primaryAlert,
+          levels,
           pnl,
           pnlPct,
           gateBlocked: rawScoreRating === '可买入' && rating === '观察',

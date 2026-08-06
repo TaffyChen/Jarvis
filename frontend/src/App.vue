@@ -53,6 +53,10 @@
                 :class="['nav-item', { active: dash.view === 'journal' }]"
                 @click="dash.view = 'journal'"
               >纪律日记</button>
+              <button
+                :class="['nav-item', { active: dash.view === 'review' }]"
+                @click="dash.view = 'review'"
+              >盘面简报</button>
               <button class="nav-item" @click="openPosition()">持仓管理</button>
               <button class="nav-item" @click="openAdd()">添加标的</button>
               <button

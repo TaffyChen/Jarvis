@@ -5,10 +5,22 @@ from app.infrastructure.persistence.positions_store import load_positions, save_
 
 
 def test_positions_roundtrip(isolated_data_dir):
-    save_positions({"sz000333": {"buyPrice": 10, "shares": 100, "name": "美的"}})
+    save_positions(
+        {
+            "sz000333": {
+                "buyPrice": 10,
+                "shares": 100,
+                "name": "美的",
+                "stopLossPrice": 9.2,
+                "takeProfitPrice": 11.5,
+            }
+        }
+    )
     data = load_positions()
     assert data["sz000333"]["buyPrice"] == 10
     assert data["sz000333"]["shares"] == 100
+    assert data["sz000333"]["stopLossPrice"] == 9.2
+    assert data["sz000333"]["takeProfitPrice"] == 11.5
 
 
 def test_analyses_roundtrip(isolated_data_dir):

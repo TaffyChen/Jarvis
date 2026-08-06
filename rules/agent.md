@@ -12,8 +12,10 @@ Jarvis 是**个人** A 股交易参谋数字员工，不是多租户 SaaS。
 
 | 能力 | 说明 |
 |------|------|
-| 行情仪表盘 | 自选 / 持仓 / 五灯 / 主升 / 选股 / 竞价 |
-| 纪律知识库 | `knowledge/*.md` → 本地向量或 Docker Milvus |
+| 行情仪表盘 | 自选 / 持仓 / 五灯 / 主升 / 选股 / 竞价 / 板块资金 |
+| 利空门禁 | 人工「通过 / 未过」；有效期内才允许「可买入」 |
+| 纪律日记 | 告警留痕；可按关键词 / 级别检索 |
+| 纪律知识库 | `knowledge/*.md` → **Milvus** 向量（产品路径，非可选项） |
 | 对话参谋 | LangGraph 多工具决策图 + HITL 补丁 |
 | 对话沉淀 | `memory_notes` 认知卡片 |
 | 共用服务层 | `services` 供对话框 / HTTP / MCP 共用 |
@@ -44,12 +46,12 @@ Jarvis 是**个人** A 股交易参谋数字员工，不是多租户 SaaS。
 | 服务 | `backend/app/services/` | journal / positions / analyses / codes / quotes / memory / patches / knowledge / rag |
 | 横切 | `backend/app/core/` | config / deps |
 | 领域 | `backend/app/domain/` | 代码规范化、沉淀模型 |
-| 基础设施 | `backend/app/infrastructure/` | storage / identity(RBAC) / llm / 本地或 Milvus 向量 / 行情 |
-| 文档 | `docs/` | 架构、视觉、决策图 |
+| 基础设施 | `backend/app/infrastructure/` | `persistence/*_store` + identity(RBAC) / kb(Milvus) / market / llm |
+| 文档 | `docs/` | 架构、视觉、决策图、分支规则 |
 | 部署 | `deploy/` | Dockerfile / compose / MySQL init SQL |
 | 前端 | `frontend/` | Vue3 + Pinia；Element 仅弹层/表格 |
 | 知识 | `knowledge/` | 策略 Markdown |
-| 数据 | MySQL + Milvus | 业务表与 RBAC 在 MySQL；知识向量在 Milvus；原文在 `knowledge/` |
+| 数据 | MySQL + Milvus | 业务表与 RBAC 在 MySQL；知识向量在 **Milvus**；原文在 `knowledge/`；无本地 JSON 产品路径 |
 
 **运行时**：Python **≥ 3.10**（推荐 3.12），`backend/.venv`；LLM 为 DeepSeek（OpenAI 兼容）。
 
@@ -127,11 +129,12 @@ api patches/apply      → services.patches
 
 ## 六、前端约定
 
+- 页面：`views/WorkspaceView.vue` / `StocksView.vue`；日记：`JournalPanel.vue`
 - 对话抽屉：`ChatPanel.vue`；Markdown 渲染助手回复
 - 知识库页：`KnowledgePanel.vue`（管理员 `kb.manage`）
 - API：`frontend/src/api/index.js`，baseURL `/api`，登录头 `x-jarvis-token`
 - 深色 / 浅色主题；自选卡片 / 列表；Element 主要用于 dialog/table
-- 视觉规范：`docs/DESIGN.md`
+- 视觉规范：`docs/DESIGN.md`；产品能力总览见根目录 `README.md`
 - **不修改**原 `dashboard` / `bussness_harnessos` 仓库
 
 ---
@@ -148,15 +151,15 @@ api patches/apply      → services.patches
 
 ### 8.1 新增只读能力
 
-1. `services/query.py` 实现  
-2. `registry.py` 注册 meta + CALLABLES  
+1. 在对应 `services/<域>.py` 实现（不要再写已删除的 `query.py`）  
+2. `services/registry.py` 注册 meta + CALLABLES  
 3. `agents/graph/tools.py` 增加 OpenAI tool schema（若对话要用）  
 4. `mcp/server.py` 增加 `@mcp.tool`（若 MCP 要用）  
 5. 更新 `docs/decision-graph.md` / 本文件能力表  
 
 ### 8.2 新增写入能力
 
-1. `services/mutate.py`  
+1. 在对应 `services/<域>.py` 或 `services/patches.py` 实现（不要再写已删除的 `mutate.py`）  
 2. registry +（可选）MCP tool，描述标明【写入】  
 3. 站内对话：扩展 `strategy_patch` target + `/patches/apply`  
 4. 前端补丁卡片文案  
