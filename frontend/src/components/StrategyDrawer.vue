@@ -21,11 +21,12 @@
       <p class="rule danger">5. 高位巨量长阴线清仓</p>
     </div>
     <div class="strategy-block">
-      <h4>五灯仓位</h4>
-      <p class="rule">换手拥挤 / 杠杆5连降 / 业绩验证期 / 海外隔夜大跌 / 持仓破20日线过半</p>
-      <p class="rule">0红8成 · 1红5成 · 2红3成 · 3红1成 · 4-5红归零</p>
-      <p class="rule warn">有效仓位 = min(五灯上限, 情绪退潮3成)</p>
-      <p class="rule warn">海外阈值：标普日跌≤-1.5% 或 纳指ETF≤-2%</p>
+      <h4>五灯仓位（全市场 v2.1）</h4>
+      <p class="rule">硬灯：指数破位(1–2) / 海外冲击 / 生态恶化（破板·高潮·大回撤）</p>
+      <p class="rule">软灯：业绩窗口 / 杠杆退潮(手动) — 单独不能归零</p>
+      <p class="rule">风险分→仓位：0→8成 · ≤1→5成 · ≤2→3成 · ≤3→1成 · ≥3.5→归零</p>
+      <p class="rule warn">不用自选/持仓样本；持仓破线走预警与铁律</p>
+      <p class="rule warn">有效仓位 = min(五灯加权上限, 情绪退潮3成)</p>
     </div>
   </el-drawer>
 </template>

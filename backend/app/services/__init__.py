@@ -44,7 +44,9 @@ from app.services.quotes import (
     klines_snapshot,
     quotes_snapshot,
     refresh_klines,
+    refresh_market_aux,
     refresh_quotes,
+    refresh_sector_flow,
 )
 from app.services.rag import retrieve_for_dialog, retrieve_knowledge
 from app.services.screen import auction_top, screen_top, sector_flow
@@ -112,6 +114,8 @@ __all__ = [
     "indices_snapshot",
     "klines_snapshot",
     "refresh_quotes",
+    "refresh_market_aux",
+    "refresh_sector_flow",
     "refresh_klines",
     "screen_top",
     "auction_top",

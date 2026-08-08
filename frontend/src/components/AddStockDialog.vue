@@ -108,7 +108,7 @@ function applyHit(hit) {
   form.keyword = hit.name ? `${hit.name}  ${form.code.replace(/^(sh|sz)/i, '')}` : form.keyword
   const q = dash.quotes[form.code]
   const k = dash.klines[form.code] || {}
-  const score = liveScoreFrom(q, k)
+  const score = liveScoreFrom(q, k, { code: form.code })
   hint.value = score != null
     ? `当前可得评分约 ${score} → ${ratingFromScore(score)}（加入后会拉最新行情）`
     : '保存后会加入自选并拉取最新行情'

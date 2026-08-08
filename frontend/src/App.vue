@@ -80,6 +80,7 @@
             @edit-position="openPosition"
             @journal="onJournal"
             @add="openAdd"
+            @remove="onRemoveStock"
           />
         </div>
       </div>
@@ -99,7 +100,8 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useDashboardStore } from './stores/dashboard'
+import { persistUiState, useDashboardStore } from './stores/dashboard'
+import { useChatStore } from './stores/chat'
 import { useAuthStore } from './stores/auth'
 import AlertBanner from './components/AlertBanner.vue'
 import ChatPanel from './components/ChatPanel.vue'
@@ -110,19 +112,43 @@ import LoginPage from './components/LoginPage.vue'
 import WorkspaceView from './views/WorkspaceView.vue'
 
 const dash = useDashboardStore()
+const chat = useChatStore()
 const auth = useAuthStore()
 const positionPreset = ref(null)
 const addPreset = ref(null)
 const THEME_KEY = 'jarvis-theme'
 const LAYOUT_KEY = 'jarvis-stock-layout'
+const CHAT_SESSION_KEY = 'jarvis-chat-session'
 const theme = ref(localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark')
 const stockLayout = ref(localStorage.getItem(LAYOUT_KEY) === 'list' ? 'list' : 'card')
-let timer = null
+/** 对齐后端 QUOTE_INTERVAL；略勤于业务表 */
+const MARKET_POLL_MS = 15000
+const BUSINESS_POLL_MS = 60000
+let marketTimer = null
+let businessTimer = null
+
+function stopPollers() {
+  if (marketTimer) {
+    clearInterval(marketTimer)
+    marketTimer = null
+  }
+  if (businessTimer) {
+    clearInterval(businessTimer)
+    businessTimer = null
+  }
+}
+
+function startPollers() {
+  stopPollers()
+  marketTimer = setInterval(() => dash.refreshMarket({ quiet: true }), MARKET_POLL_MS)
+  businessTimer = setInterval(() => dash.refreshBusiness({ quiet: true }), BUSINESS_POLL_MS)
+}
 
 const views = [
+  { id: 'market', label: '盘面' },
   { id: 'stocks', label: '自选标的' },
   { id: 'sectorFlow', label: '板块资金流向' },
-  { id: 'screen', label: '盘后选股池' },
+  { id: 'screen', label: '策略选股' },
   { id: 'auction', label: '竞价异动榜' },
 ]
 
@@ -186,6 +212,37 @@ async function onJournal(alert) {
   } catch { /* cancel */ }
 }
 
+async function onRemoveStock(card) {
+  if (!card?.code) return
+  const name = card.name || card.code
+  const hasPos = !!dash.positions[card.code]
+  const msg = hasPos
+    ? `将「${name}」移出自选？\n该标的仍有持仓登记，移出后列表可能仍因持仓显示；如需一并清仓请勾选下方选项，或之后在持仓管理删除。`
+    : `将「${name}」移出自选？不会下单，只从观察池移除。`
+  try {
+    await ElMessageBox.confirm(msg, '移出自选', {
+      confirmButtonText: hasPos ? '移出并清仓' : '移出',
+      distinguishCancelAndClose: true,
+      cancelButtonText: hasPos ? '仅移出自选' : '取消',
+      type: 'warning',
+    })
+    // 点确认：有持仓则同时清仓
+    if (hasPos) {
+      const next = { ...dash.positions }
+      delete next[card.code]
+      await dash.savePositions(next)
+    }
+    await dash.removeStock(card.code)
+    ElMessage.success(hasPos ? '已移出自选并清除持仓登记' : '已移出自选')
+  } catch (action) {
+    // 有持仓时点「仅移出自选」
+    if (hasPos && action === 'cancel') {
+      await dash.removeStock(card.code)
+      ElMessage.success('已移出自选（持仓登记保留）')
+    }
+  }
+}
+
 function onToggleLever() {
   dash.flipLever()
   ElMessage.info('已切换「杠杆5连降」手动标记')
@@ -215,25 +272,50 @@ watch(() => dash.view, (v) => {
   if (v === 'auction' && !dash.auctionResults.length) dash.fetchAuction()
 })
 
+/** 定时/手动 refresh 只更新行情与业务表，不改这些；此处持久化防 F5 丢上下文 */
+watch(
+  () => ({
+    view: dash.view,
+    search: dash.search,
+    sector: dash.sector,
+    filter: dash.filter,
+    chatOpen: dash.chatOpen,
+  }),
+  (s) => persistUiState(s),
+  { deep: true },
+)
+
+watch(
+  () => chat.sessionId,
+  (id) => {
+    try {
+      if (id != null) sessionStorage.setItem(CHAT_SESSION_KEY, String(id))
+      else sessionStorage.removeItem(CHAT_SESSION_KEY)
+    } catch { /* ignore */ }
+  },
+)
+
 watch(() => auth.isAuthed, async (authed) => {
   if (!authed) {
-    if (timer) {
-      clearInterval(timer)
-      timer = null
-    }
+    stopPollers()
     return
   }
   await dash.refresh()
-  if (!timer) timer = setInterval(() => dash.refresh(), 10000)
+  startPollers()
 })
 
 onMounted(async () => {
   applyTheme(theme.value)
   await auth.restore()
   if (!auth.isAuthed) return
-  dash.chatOpen = false
   await dash.refresh()
-  timer = setInterval(() => dash.refresh(), 10000)
+  startPollers()
+  // 恢复对话：面板开着则拉回上次会话，不因挂载强制关面板
+  try {
+    const sid = Number(sessionStorage.getItem(CHAT_SESSION_KEY) || 0)
+    if (sid > 0) await chat.openSession(sid)
+    else await chat.refreshSessions()
+  } catch { /* ignore */ }
 })
-onUnmounted(() => { if (timer) clearInterval(timer) })
+onUnmounted(() => { stopPollers() })
 </script>

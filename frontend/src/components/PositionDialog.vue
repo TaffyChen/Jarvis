@@ -1,99 +1,134 @@
 <template>
-  <el-dialog :model-value="modelValue" title="持仓管理" width="920px" @close="$emit('update:modelValue', false)">
-    <div style="margin-bottom:14px">
-      <div class="muted" style="margin-bottom:8px;font-weight:700;color:var(--bright)">当前持仓</div>
-      <el-table :data="rows" size="small" empty-text="暂无持仓" style="width:100%">
-        <el-table-column prop="name" label="标的" min-width="110" />
-        <el-table-column prop="buyPrice" label="成本" width="88" />
-        <el-table-column prop="shares" label="股数" width="72" />
-        <el-table-column prop="price" label="现价" width="80" />
-        <el-table-column prop="stopText" label="止损" width="88" />
-        <el-table-column prop="takeText" label="止盈" width="88" />
-        <el-table-column label="盈亏额" width="96">
+  <el-dialog
+    :model-value="modelValue"
+    title="持仓管理"
+    width="720px"
+    class="pos-dialog"
+    align-center
+    @close="$emit('update:modelValue', false)"
+  >
+    <div class="pos-table-block">
+      <div class="pos-table-head">
+        <span class="pos-table-title">当前持仓</span>
+        <span class="muted">点行编辑</span>
+      </div>
+      <el-table
+        :data="rows"
+        size="small"
+        empty-text="暂无持仓"
+        style="width:100%"
+        max-height="240"
+        highlight-current-row
+        :row-class-name="rowClassName"
+        @row-click="onRowClick"
+      >
+        <el-table-column label="标的" min-width="128">
           <template #default="{ row }">
-            <span :class="row.hasQuote ? (row.pnl >= 0 ? 'up' : 'down') : 'muted'">{{ row.pnlText }}</span>
+            <span class="pos-name">{{ row.name }}</span>
+            <span class="muted pos-code">{{ row.rawCode }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="盈亏比例" width="96">
+        <el-table-column prop="buyPrice" label="成本" width="78" align="right" />
+        <el-table-column prop="shares" label="股数" width="64" align="right" />
+        <el-table-column prop="price" label="现价" width="70" align="right" />
+        <el-table-column prop="stopText" label="止损" width="70" align="right" />
+        <el-table-column prop="takeText" label="止盈" width="70" align="right" />
+        <el-table-column label="盈亏" width="118" align="right">
           <template #default="{ row }">
-            <span :class="row.hasQuote ? (row.pnlPct >= 0 ? 'up' : 'down') : 'muted'">{{ row.pnlPctText }}</span>
+            <span :class="row.hasQuote ? (row.pnl >= 0 ? 'up' : 'down') : 'muted'">
+              {{ row.pnlText }}
+              <span class="pos-pnl-pct">{{ row.pnlPctText }}</span>
+            </span>
           </template>
         </el-table-column>
-        <el-table-column label="" width="64">
+        <el-table-column label="" width="40" align="center">
           <template #default="{ row }">
-            <el-button link type="danger" @click="remove(row.code)">删除</el-button>
+            <button
+              type="button"
+              class="pos-icon-btn"
+              title="删除持仓"
+              @click.stop="remove(row)"
+            >
+              <el-icon :size="14"><Delete /></el-icon>
+            </button>
           </template>
         </el-table-column>
       </el-table>
     </div>
 
-    <el-form label-position="top">
-      <el-form-item label="添加 / 修改持仓（输入名称或代码，不必先加入自选）">
-        <el-autocomplete
-          v-model="form.keyword"
-          :fetch-suggestions="querySearch"
-          value-key="label"
-          placeholder="例如：美的 / 000333，回车或点选"
-          style="width:100%"
-          clearable
-          @select="onSelect"
-          @keyup.enter="resolveKeyword"
-        />
-      </el-form-item>
-      <div v-if="form.code" class="muted" style="margin-top:-8px;margin-bottom:8px">
-        已选：{{ form.name || form.code }} · {{ displayCode }}
-        <span v-if="quoteHint"> · {{ quoteHint }}</span>
+    <div class="pos-form-block">
+      <div class="pos-form-head">
+        <span class="pos-table-title">{{ editingExisting ? '编辑' : '新增' }}</span>
+        <button v-if="editingExisting" type="button" class="btn btn-sm btn-ghost" @click="reset">取消</button>
       </div>
-      <div style="display:flex;gap:12px">
-        <el-form-item label="买入价" style="flex:1">
-          <el-input-number v-model="form.buyPrice" :step="0.01" :precision="3" style="width:100%" />
-        </el-form-item>
-        <el-form-item label="股数" style="flex:1">
-          <el-input-number v-model="form.shares" :step="100" :min="1" style="width:100%" />
-        </el-form-item>
-      </div>
-      <div style="display:flex;gap:12px">
-        <el-form-item label="止损价（可选，空=成本-8%）" style="flex:1">
-          <el-input-number
-            v-model="form.stopLossPrice"
-            :step="0.01"
-            :precision="3"
-            :min="0"
-            controls-position="right"
+
+      <el-form class="pos-form" label-position="top" size="small">
+        <el-form-item v-if="!editingExisting" label="搜索标的">
+          <el-autocomplete
+            v-model="form.keyword"
+            :fetch-suggestions="querySearch"
+            value-key="label"
+            placeholder="名称或代码，如 美的 / 000333"
             style="width:100%"
-            placeholder="默认自动"
+            clearable
+            @select="onSelect"
+            @keyup.enter="resolveKeyword"
           />
         </el-form-item>
-        <el-form-item label="止盈价（可选，空=成本+10%）" style="flex:1">
-          <el-input-number
-            v-model="form.takeProfitPrice"
-            :step="0.01"
-            :precision="3"
-            :min="0"
-            controls-position="right"
-            style="width:100%"
-            placeholder="默认自动"
-          />
-        </el-form-item>
-      </div>
-      <div v-if="autoHint" class="muted" style="margin-top:-6px;margin-bottom:8px;font-size:12px">
-        {{ autoHint }}
-      </div>
-    </el-form>
+        <div v-if="form.code" class="pos-selected muted">
+          {{ editingExisting ? '编辑中' : '已选' }}：
+          <b>{{ form.name || form.code }}</b>
+          · {{ displayCode }}
+          <span v-if="quoteHint"> · {{ quoteHint }}</span>
+        </div>
+        <div class="pos-fields">
+          <el-form-item label="买入价" style="flex:1;margin-bottom:8px">
+            <el-input-number v-model="form.buyPrice" :step="0.01" :precision="3" controls-position="right" style="width:100%" />
+          </el-form-item>
+          <el-form-item label="股数" style="flex:1;margin-bottom:8px">
+            <el-input-number v-model="form.shares" :step="100" :min="1" controls-position="right" style="width:100%" />
+          </el-form-item>
+          <el-form-item label="止损（空=成本-8%）" style="flex:1;margin-bottom:8px">
+            <el-input-number
+              v-model="form.stopLossPrice"
+              :step="0.01"
+              :precision="3"
+              :min="0"
+              controls-position="right"
+              style="width:100%"
+            />
+          </el-form-item>
+          <el-form-item label="止盈（空=成本+10%）" style="flex:1;margin-bottom:8px">
+            <el-input-number
+              v-model="form.takeProfitPrice"
+              :step="0.01"
+              :precision="3"
+              :min="0"
+              controls-position="right"
+              style="width:100%"
+            />
+          </el-form-item>
+        </div>
+        <div v-if="autoHint" class="muted pos-hint">{{ autoHint }}</div>
+      </el-form>
+    </div>
 
     <template #footer>
-      <el-button @click="$emit('update:modelValue', false)">关闭</el-button>
-      <el-button type="primary" :loading="saving" @click="save">保存持仓</el-button>
+      <el-button size="small" @click="$emit('update:modelValue', false)">关闭</el-button>
+      <el-button type="primary" size="small" :loading="saving" @click="save">
+        {{ editingExisting ? '保存' : '添加' }}
+      </el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Delete } from '@element-plus/icons-vue'
 import { useDashboardStore } from '../stores/dashboard'
 import { api } from '../api'
-import { positionRiskLevels } from '../utils/signals'
+import { positionRiskLevels, boardStopPcts, maxHighSinceBuy, isStrongTrend } from '../utils/signals'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -114,6 +149,7 @@ const form = reactive({
 })
 
 const displayCode = computed(() => String(form.code || '').replace(/^(sh|sz)/i, ''))
+const editingExisting = computed(() => !!(form.code && dash.positions[form.code]))
 
 const quoteHint = computed(() => {
   const q = dash.quotes[form.code]
@@ -124,23 +160,34 @@ const quoteHint = computed(() => {
 const autoHint = computed(() => {
   const buy = Number(form.buyPrice) || 0
   if (!(buy > 0)) return ''
-  const sl = (buy * 0.92).toFixed(3)
+  const code = form.code
+  const name = dash.items.find((i) => i.code === code)?.name || form.name || ''
+  const { cost, trail, label } = boardStopPcts(code, name)
+  const sl = (buy * (1 + cost / 100)).toFixed(3)
   const tp = (buy * 1.1).toFixed(3)
-  return `默认参考：止损 ${sl}（-8%）· 止盈 ${tp}（+10%）。铁律（破线/回撤）仍优先于价格。`
+  return `默认参考（${label}）：成本止损 ${sl}（${cost}%）· 跟踪${trail}% · 止盈 ${tp}（+10% 起）。铁律仍优先。`
 })
 
 const rows = computed(() => Object.keys(dash.positions).map((code) => {
   const pos = dash.positions[code]
   const item = dash.items.find((i) => i.code === code)
   const q = dash.quotes[code]
+  const k = dash.klines[code]
   const price = q?.price || 0
   const hasQuote = price > 0
   const pnl = hasQuote ? (price - pos.buyPrice) * pos.shares : 0
   const pnlPct = hasQuote && pos.buyPrice > 0 ? (price - pos.buyPrice) / pos.buyPrice * 100 : 0
-  const levels = positionRiskLevels(pos, price)
+  const name = item?.name || pos.name || code
+  const levels = positionRiskLevels(pos, price, {
+    code,
+    name,
+    maxHigh: maxHighSinceBuy(k, pos) || price,
+    strongTrend: isStrongTrend(k),
+  })
   return {
     code,
-    name: item?.name || pos.name || code,
+    rawCode: code.replace(/^(sh|sz)/i, ''),
+    name,
     buyPrice: Number(pos.buyPrice).toFixed(3),
     shares: pos.shares,
     price: hasQuote ? price.toFixed(2) : '--',
@@ -153,6 +200,10 @@ const rows = computed(() => Object.keys(dash.positions).map((code) => {
     takeText: levels ? Number(levels.takeProfit).toFixed(2) : '--',
   }
 }))
+
+function rowClassName({ row }) {
+  return row.code === form.code ? 'pos-row-active' : ''
+}
 
 function normalizeCode(raw) {
   const c = String(raw || '').trim().toLowerCase().replace(/^(sh|sz)/, '')
@@ -193,6 +244,10 @@ function applyHit(hit) {
     form.stopLossPrice = undefined
     form.takeProfitPrice = undefined
   }
+}
+
+function onRowClick(row) {
+  applyHit({ code: row.code, name: row.name })
 }
 
 async function querySearch(queryString, cb) {
@@ -257,11 +312,9 @@ async function save() {
   }
   saving.value = true
   try {
-    const exists = dash.items.some((i) => i.code === form.code)
-      || Object.prototype.hasOwnProperty.call(dash.quotes, form.code)
-      || Object.prototype.hasOwnProperty.call(dash.analyses, form.code)
-    if (!exists) {
-      await api.addCodes([form.code])
+    // 持仓一律确保进入观察池+行情，避免「持仓管理有、标的列表没有」
+    await api.addCodes([form.code])
+    if (!dash.analyses[form.code]) {
       await api.upsertAnalysis({
         code: form.code,
         name: form.name || form.code,
@@ -280,7 +333,8 @@ async function save() {
     next[form.code] = row
     await dash.savePositions(next)
     ElMessage.success(`已保存 ${form.name || form.code}`)
-    reset()
+    // 保留当前编辑选中，方便连续微调；新增后清空搜索区
+    if (!old) reset()
   } catch (e) {
     ElMessage.error('保存失败：' + (e.message || e))
   } finally {
@@ -288,10 +342,102 @@ async function save() {
   }
 }
 
-async function remove(code) {
+async function remove(row) {
+  try {
+    await ElMessageBox.confirm(
+      `确认删除持仓「${row.name}」？不会下单，只清本地登记。`,
+      '删除持仓',
+      { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' },
+    )
+  } catch {
+    return
+  }
   const next = { ...dash.positions }
-  delete next[code]
+  delete next[row.code]
   await dash.savePositions(next)
-  ElMessage.success('已删除')
+  if (form.code === row.code) reset()
+  ElMessage.success('已删除持仓')
 }
 </script>
+
+<style scoped>
+.pos-table-block { margin-bottom: 10px; }
+.pos-table-head,
+.pos-form-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.pos-table-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--bright);
+}
+.pos-name {
+  font-weight: 600;
+  color: var(--bright);
+  margin-right: 6px;
+  white-space: nowrap;
+}
+.pos-code {
+  font-size: 12px;
+  white-space: nowrap;
+}
+.pos-pnl-pct {
+  margin-left: 4px;
+  opacity: 0.85;
+  font-size: 12px;
+}
+.pos-form-block {
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.pos-selected {
+  margin: 0 0 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pos-selected b { color: var(--bright); font-weight: 600; }
+.pos-fields { display: flex; gap: 8px; flex-wrap: wrap; }
+.pos-hint { margin: 0; font-size: 11px; line-height: 1.35; }
+.pos-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.pos-icon-btn:hover {
+  color: var(--red);
+  border-color: var(--border);
+  background: var(--red-bg, rgba(248, 81, 73, 0.12));
+}
+:deep(.pos-row-active > td) {
+  background: var(--blue-bg, rgba(88, 166, 255, 0.12)) !important;
+}
+:deep(.el-table__body tr) { cursor: pointer; }
+:deep(.el-table .cell) {
+  line-height: 1.3;
+  white-space: nowrap;
+}
+:deep(.el-form-item__label) {
+  margin-bottom: 2px !important;
+  font-size: 12px;
+  line-height: 1.2;
+}
+:deep(.el-dialog__body) {
+  padding-top: 8px;
+  padding-bottom: 4px;
+}
+</style>

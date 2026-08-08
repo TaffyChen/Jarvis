@@ -41,6 +41,10 @@ export const api = {
   addCodes: (codes) => http.post('/codes/add', { codes }).then((r) => r.data),
   removeCodes: (codes) => http.post('/codes/remove', { codes }).then((r) => r.data),
   screen: () => http.get('/screen').then((r) => r.data),
+  screenStrategyDoc: (strategyId) =>
+    http.get('/screen/strategy-doc', { params: { strategyId } }).then((r) => r.data),
+  screenAnalyze: (strategyId, code, row = null) =>
+    http.post('/screen/analyze', { strategyId, code, row }).then((r) => r.data),
   auction: () => http.get('/auction').then((r) => r.data),
   sectorFlow: () => http.get('/sector-flow').then((r) => r.data),
   chat: (question, history = [], sessionId = null) =>

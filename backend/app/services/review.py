@@ -10,11 +10,11 @@ from app.infrastructure.llm import get_llm_client
 from app.infrastructure.market.service import market
 from app.infrastructure.persistence import analyses_store, positions_store, review_store, watch_store
 from app.services.journal import list_journal
+from app.services.lamps import compute_lamps, lamp_cap_from_lamps
 from app.services.rag import retrieve_knowledge
 
 _SENTIMENT_UP_PCT = 0.4
 _SENTIMENT_UP_COUNT = 1500
-_LAMP_CAPS = {0: 0.8, 1: 0.5, 2: 0.3, 3: 0.1}
 _SENTIMENT_CAP = 0.3
 
 
@@ -35,8 +35,9 @@ def build_daily_review_snapshot() -> dict[str, Any]:
         )
 
     lamps = _compute_lamps_lite()
-    red = sum(1 for x in lamps if x.get("red"))
-    lamp_cap = 0.0 if red >= 4 else _LAMP_CAPS.get(red, 0.8)
+    lamp_info = lamp_cap_from_lamps(lamps)
+    red = int(lamp_info["redCount"])
+    lamp_cap = float(lamp_info["lampCap"])
     sentiment_cap = _SENTIMENT_CAP if retreat else None
     effective_cap = min(lamp_cap, sentiment_cap) if sentiment_cap is not None else lamp_cap
 
@@ -138,12 +139,15 @@ def build_daily_review_snapshot() -> dict[str, Any]:
         },
         "positionCap": {
             "lampRed": red,
+            "riskScore": lamp_info["riskScore"],
+            "hardScore": lamp_info["hardScore"],
+            "softScore": lamp_info["softScore"],
             "lamps": lamps,
             "lampCap": lamp_cap,
             "sentimentCap": sentiment_cap,
             "effectiveCap": effective_cap,
             "buyAllowed": effective_cap > 0 and not retreat,
-            "text": _cap_text(red, lamp_cap, sentiment_cap, effective_cap, retreat),
+            "text": _cap_text(red, lamp_cap, sentiment_cap, effective_cap, retreat, lamp_info["riskScore"]),
         },
         "sectors": {
             "summary": sf.get("summary") or {},
@@ -259,9 +263,16 @@ def mark_brief_final(version_id: int) -> dict[str, Any] | None:
 
 def _limit_up_summary() -> dict[str, Any] | None:
     lu = getattr(market, "limit_up_stats", None)
-    if not isinstance(lu, dict):
+    if not isinstance(lu, dict) or not lu:
         return None
-    return {k: lu.get(k) for k in ("upCount", "downCount", "limitUpCount") if k in lu}
+    keys = (
+        "zt", "zb", "dt", "maxDays", "topSector", "ladder",
+        "breakRate", "yestPremium", "yestPremiumSample",
+        "promoteRate", "promoteEligible", "promoteSuccess",
+        "bigDrawdown", "bigDrawdownThr", "yestDate",
+        "upCount", "downCount", "limitUpCount",
+    )
+    return {k: lu.get(k) for k in keys if k in lu}
 
 
 def _sector_brief(row: dict[str, Any]) -> dict[str, Any]:
@@ -280,68 +291,17 @@ def _cap_text(
     sentiment_cap: float | None,
     effective: float,
     retreat: bool,
+    risk_score: float = 0.0,
 ) -> str:
     if effective <= 0:
-        return f"{red}红灯 | 仓位归零"
+        return f"风险{risk_score:g} | 仓位归零"
     if retreat and sentiment_cap is not None and sentiment_cap < lamp_cap:
-        return f"{red}红灯 | 有效≤{int(round(effective * 10))}成（情绪退潮）"
-    return f"{red}红灯 | 仓位上限{int(round(lamp_cap * 10))}成"
+        return f"风险{risk_score:g} | 有效≤{int(round(effective * 10))}成（情绪退潮）"
+    return f"{red}盏亮(风险{risk_score:g}) | 仓位上限{int(round(lamp_cap * 10))}成"
 
 
 def _compute_lamps_lite() -> list[dict[str, Any]]:
-    lamps: list[dict[str, Any]] = []
-    turns: list[float] = []
-    for code, q in (market.quote_cache or {}).items():
-        if str(code).startswith(("sh5", "sz1")):
-            continue
-        t = float(q.get("turnover") or q.get("turnOver") or 0)
-        if t > 0:
-            turns.append(t)
-    avg_turn = sum(turns) / len(turns) if turns else 0.0
-    lamps.append(
-        {
-            "name": "换手拥挤",
-            "red": avg_turn > 10,
-            "detail": f"自选均换手 {avg_turn:.2f}%" if turns else "数据不足",
-        }
-    )
-    lamps.append({"name": "杠杆5连降", "red": False, "detail": "需网页手动点亮，简报快照默认熄灭"})
-    today = date.today()
-    m, d = today.month, today.day
-    earn = (m == 1 and 17 <= d <= 31) or (m == 7 and 1 <= d <= 15)
-    lamps.append({"name": "业绩验证期", "red": earn, "detail": today.isoformat()})
-    ov = market.overseas or {}
-    spx = float(ov.get("changePct") or 0) if ov else 0.0
-    nas = market.quote_cache.get("sz159659") or {}
-    nas_chg = float(nas.get("changePct") or 0)
-    overseas_red = (bool(ov) and spx <= -1.5) or (bool(nas.get("price")) and nas_chg <= -2.0)
-    lamps.append(
-        {
-            "name": "海外隔夜大跌",
-            "red": overseas_red,
-            "detail": f"标普{spx}% / 纳指ETF{nas_chg}%" if ov or nas else "海外数据不足",
-        }
-    )
-    positions = positions_store.load_positions() or {}
-    below = with_ma = 0
-    for code in positions:
-        q = market.quote_cache.get(code) or {}
-        k = market.kline_cache.get(code) or {}
-        price = float(q.get("price") or 0)
-        ma20 = float(k.get("ma20") or 0)
-        if price > 0 and ma20 > 0:
-            with_ma += 1
-            if price < ma20:
-                below += 1
-    pct = (below / with_ma) if with_ma else 0.0
-    lamps.append(
-        {
-            "name": "持仓破20日线",
-            "red": with_ma > 0 and pct > 0.5,
-            "detail": f"{below}/{with_ma}" if with_ma else "无持仓均线",
-        }
-    )
-    return lamps
+    return compute_lamps(lever_red=False)
 
 
 async def _llm_report(

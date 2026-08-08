@@ -91,24 +91,41 @@ START → bootstrap → agent ⇄ tools → END
 - `patch` / `memoryPatch`：提案（需你点确认才落库）
 - `orchestrator: "graph"`
 
-同时写入 MySQL `conversations` 表，方便事后复盘。
+同时写入 MySQL `conversations`（挂到 `chat_sessions`），方便事后复盘与左侧历史切换。
 
 ---
 
-## 流程图（简）
+## 流程图（当前实现）
 
+> 下图对应 `backend/app/agents/graph/graph.py` 当前代码，不是抽象愿景图。
+
+```mermaid
+flowchart TD
+    A([START]) --> B[bootstrap<br/>RAG预检索 · 注入纪律原文 · 组装 messages]
+    B --> C[agent<br/>调 LLM；若 tool_rounds 已达上限则不下发 tools]
+    C --> D{最新 assistant<br/>是否有 tool_calls?}
+    D -->|是| E[tools<br/>执行只读工具 · 回写 tool 消息<br/>记 toolTrace · tool_rounds+=1]
+    E --> C
+    D -->|否| H([END])
 ```
-你：「sz300408 还能持有吗？」
- │
- ├─① bootstrap     RAG 检索原文注入 + 组装 messages
- │
- ├─② agent #1      决定要查行情/评分/分析/纪律
- │                    ↓ tool_calls
- ├─③ tools         执行 4 个只读工具，记 toolTrace
- │
- ├─④ agent #2      根据工具结果给出「持有/减仓…」
- │                    ↓ 无 tool_calls
- └─⑤ END + runner  返回 answer + toolTrace + 可选 patch
+
+图上真实边只有三条：`START→bootstrap→agent`、`agent→tools|END`、`tools→agent`。  
+补充说明（都不是独立图节点）：
+
+- **强制收束**：在 `agent` 内部——`tool_rounds` 达上限时不下发 `tools` 参数。
+- **解析 patch**：也在 `agent` 内部——无 `tool_calls` 时从回答抽出 `strategy_patch` / `memory_patch` 写入 state，再走 END。
+
+```mermaid
+flowchart LR
+    U[前端 ChatPanel] --> API[/POST /api/jarvis/chat/]
+    API --> RUN[runner.py]
+    RUN --> G[LangGraph<br/>bootstrap → agent ⇄ tools → END]
+    G --> RET[返回 answer · toolTrace · sources · 可选 patch<br/>并写入 conversations / chat_sessions]
+    RET --> P{本轮是否含<br/>strategy_patch / memory_patch?}
+    P -->|否| N[仅展示回答]
+    P -->|是| HITL{用户点「采纳」?}
+    HITL -->|是| W[patches / memory 写业务表]
+    HITL -->|否| N2[提案不落业务表<br/>对话流水里仍可看到]
 ```
 
 ---
@@ -153,4 +170,4 @@ START → bootstrap → agent ⇄ tools → END
 
 ---
 
-最后更新时间：2026-08-05
+最后更新时间：2026-08-06

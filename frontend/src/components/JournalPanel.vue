@@ -10,11 +10,21 @@
       </div>
 
       <div class="journal-toolbar">
-        <input
-          v-model.trim="search"
-          class="search-input"
-          placeholder="搜索代码 / 名称 / 告警 / 动作 / 备注"
-        >
+        <div class="search-wrap">
+          <input
+            v-model.trim="search"
+            class="search-input"
+            placeholder="搜索代码 / 名称 / 告警 / 动作 / 备注"
+          >
+          <button
+            v-if="search"
+            type="button"
+            class="search-clear"
+            title="清空"
+            aria-label="清空搜索"
+            @click="search = ''"
+          >×</button>
+        </div>
         <div class="tabs">
           <button
             v-for="t in tabs"
@@ -120,7 +130,7 @@ function formatTime(iso) {
   display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px;
   margin-bottom: 12px;
 }
-.journal-toolbar .search-input { max-width: 360px; }
+.journal-toolbar .search-wrap { max-width: 360px; }
 .journal-list { display: flex; flex-direction: column; gap: 8px; }
 .journal-item {
   border: 1px solid var(--border); border-radius: var(--radius-md);

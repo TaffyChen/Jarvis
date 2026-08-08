@@ -62,18 +62,30 @@ def get_market_overview() -> dict[str, Any]:
 
 
 def quotes_snapshot() -> dict[str, Any]:
+    from app.services.sentiment import sentiment_history_snapshot
+
     return {
         "quotes": market.quote_cache,
         "breadth": market.breadth,
         "marketBreadth": market.market_breadth,
         "overseas": market.overseas,
         "limitUpStats": market.limit_up_stats,
+        "marketTurnover": market.market_turnover,
+        "sentimentHistory": sentiment_history_snapshot(),
         "lastUpdate": market.last_update,
     }
 
 
 def indices_snapshot() -> dict[str, Any]:
-    return {"indices": market.index_cache, "breadth": market.breadth, "lastUpdate": market.last_update}
+    from app.services.sentiment import sentiment_history_snapshot
+
+    return {
+        "indices": market.index_cache,
+        "breadth": market.breadth,
+        "marketTurnover": market.market_turnover,
+        "sentimentHistory": sentiment_history_snapshot(),
+        "lastUpdate": market.last_update,
+    }
 
 
 def klines_snapshot() -> dict[str, Any]:
@@ -96,6 +108,14 @@ def health_snapshot() -> dict[str, Any]:
 
 async def refresh_quotes() -> None:
     await market.fetch_all_quotes()
+
+
+async def refresh_market_aux() -> None:
+    await market.fetch_market_aux()
+
+
+async def refresh_sector_flow() -> None:
+    await market.fetch_sector_flow()
 
 
 async def refresh_klines() -> None:

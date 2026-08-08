@@ -9,18 +9,19 @@
 - **编排**：LangGraph 决策图（预检索 → 工具 → 结论 / HITL 补丁）
 - **数据**：业务在 **MySQL 专用表**；知识向量在 **Milvus**；策略原文在 `knowledge/`。二者都是产品路径，不是可选项
 - **账户**：MySQL RBAC（`admin` / `member`）；无库时回退 `.env` 单账号（仅应急）
-- **文档**：开发规则 [`rules/agent.md`](rules/agent.md) · 架构 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · 视觉 [`docs/DESIGN.md`](docs/DESIGN.md) · 协作 [`docs/BRANCH_RULES.md`](docs/BRANCH_RULES.md)
+- **文档**：开发规则 [`rules/agent.md`](rules/agent.md) · 架构 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)（含“当前整体架构：五层+安全治理”）· 视觉 [`docs/DESIGN.md`](docs/DESIGN.md) · 协作 [`docs/BRANCH_RULES.md`](docs/BRANCH_RULES.md)
 
 ## 产品功能
 
 | 能力 | 做什么 |
 |------|--------|
-| **自选标的** | 观察池卡片 / 列表：实时行情、综合评分、评级（可买入 / 观察 / 不追等）、火花图与板块筛选 |
+| **盘面（默认首页）** | 五灯仓位、市场情绪（温度+冰点/沸点线、最高板）、主线与自选重合、操作建议 |
+| **自选标的** | 观察池卡片 / 列表：实时评分与评级、板块/首字母搜索、决策胶囊跳转盘面 |
 | **利空门禁** | 「利空通过 / 未过」：分数够仍须你复核；通过且 ≤14 天才允许「可买入」，否则最高「观察」 |
 | **持仓与预警** | 登记持仓；默认/自定义止损止盈价；破均线、回撤、五灯等告警（顶栏+卡片/列表）；可记纪律日记 |
 | **策略引擎** | 侧栏抽屉看纪律摘要：三原则、五灯、评分档位等（原文在 `knowledge/`） |
-| **板块资金** | 板块净流入 / 流出排行，辅助看资金偏好 |
-| **盘后选股池** | 按纪律初筛候选；上榜 ≠ 可买，加入自选后仍要过利空门禁 |
+| **板块资金** | 板块净流入 / 流出排行，辅助看资金偏好；与自选主线重合联动 |
+| **策略选股** | 趋势波段 / 回踩 / 资金共振 / 综合质量；上榜 ≠ 可买，加入自选后仍要过利空门禁 |
 | **竞价异动榜** | 开盘竞价异动排序，适合盘前扫一眼 |
 | **纪律日记** | 告警留痕：当时什么票、什么级别、建议什么、你怎么做；支持关键词与级别搜索 |
 | **盘面简报** | 同日多版本追加（冻结快照 + 五段报告 + 批注）；可标定稿；与纪律日记分离 |
@@ -30,7 +31,8 @@
 
 **不做的事**：不下单、不接券商、不替你承担买卖决策；日记与预警只提醒与留痕，不会自动平仓。
 
-网页侧栏大致对应：自选 · 板块资金 · 盘后选股 · 竞价 · 纪律日记 · 盘面简报 · 持仓 ·（管理员）知识库 · 对话。
+网页侧栏大致对应：盘面 · 自选 · 板块资金 · 策略选股 · 竞价 · 纪律日记 · 盘面简报 · 持仓 ·（管理员）知识库 · 对话。  
+定时刷新只更新行情/业务表，不会清掉当前页、搜索或对话；F5 会用 sessionStorage 尽量恢复上下文。
 
 ## 快速启动
 
@@ -75,7 +77,7 @@ bash reindex.sh        # 改过 knowledge/ 或分析、沉淀后，重建 Milvus
 | 类型 | 位置 | 说明 |
 |------|------|------|
 | 策略原文 | `knowledge/*.md` | 源文件；管理员可在网页「知识库」编辑 / 上传，改完执行 `reindex.sh` |
-| 业务数据 | MySQL（Docker 卷 + 专用表） | 观察池、持仓、分析、日记、沉淀、提案、对话流水、RBAC；SQL 见 `deploy/mysql/init/` |
+| 业务数据 | MySQL（Docker 卷 + 专用表） | 观察池、持仓、分析、日记、盘面简报、沉淀、提案、对话会话/流水、RBAC；SQL 见 `deploy/mysql/init/` |
 | 知识向量 | Milvus collection `jarvis_kb` | 切块向量；可用 Attu 查看。不是 MySQL |
 | 导出备份 | `bash deploy/mysql/export-data.sh` | 从库导出业务数据 |
 
@@ -172,7 +174,7 @@ Jarvis/
 │       │   ├── positions.py       # 持仓
 │       │   ├── analyses.py        # 分析底稿 / 利空复核
 │       │   ├── codes.py           # 观察池搜索与加减
-│       │   ├── jarvis.py          # 对话、补丁确认、沉淀确认
+│       │   ├── jarvis.py          # 对话、补丁确认、沉淀、盘面简报
 │       │   ├── knowledge.py       # 知识库维护（管理员）
 │       │   └── services.py        # 能力发现与 invoke（路径仍 /capabilities）
 │       ├── mcp/                   # MCP Server（stdio，Cursor 按需拉起）
@@ -187,15 +189,19 @@ Jarvis/
 │       │   ├── codes.py           # 观察池
 │       │   ├── quotes.py          # 行情快照与评分
 │       │   ├── screen.py          # 盘后选股 / 竞价 / 板块资金
+│       │   ├── lamps.py           # 五灯仓位（全市场）
+│       │   ├── sentiment.py       # 情绪温度采样 / 近一月折线
+│       │   ├── review.py          # 盘面简报（同日多版本）
 │       │   ├── memory.py          # 对话沉淀读写
 │       │   ├── patches.py         # 确认后执行 strategy_patch
-│       │   ├── conversations.py   # 对话流水
+│       │   ├── conversations.py   # 对话流水 / 会话
 │       │   ├── auth.py            # 登录会话
 │       │   ├── knowledge.py       # 知识库文档 CRUD / 重建索引
 │       │   ├── rag.py             # 对话检索：扩查询、多路召回、重排
 │       │   └── registry.py        # 能力清单，供 MCP / invoke 发现
 │       ├── domain/                # 纯规则，不碰数据库
 │       │   ├── codes.py           # 股票代码规范化（600693 → sh600693）
+│       │   ├── sectors.py         # 板块标签 / 全市场行业→估值族
 │       │   └── memory.py          # 沉淀卡片规范化 / 检索打分
 │       ├── infrastructure/        # 外部系统与落库
 │       │   ├── persistence/       # MySQL：各业务表 store + schema/migrate/identity
@@ -209,10 +215,10 @@ Jarvis/
     └── src/
         ├── main.js / App.vue / style.css
         ├── api/index.js           # axios 封装，统一带登录 token
-        ├── views/                 # 页面：工作区 / 自选标的
-        ├── components/            # 卡片、日记、知识库、对话、选股等面板
+        ├── views/                 # 页面：工作区 / 盘面 / 自选
+        ├── components/            # 卡片、日记、盘面简报、知识库、对话、选股等面板
         ├── stores/                # dashboard / auth / chat
-        └── utils/                 # 五灯信号、评分展示、Markdown
+        └── utils/                 # 五灯信号、评分、搜索匹配、Markdown
 ```
 
 ## 站内对话（RAG）

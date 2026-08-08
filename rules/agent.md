@@ -15,6 +15,7 @@ Jarvis 是**个人** A 股交易参谋数字员工，不是多租户 SaaS。
 | 行情仪表盘 | 自选 / 持仓 / 五灯 / 主升 / 选股 / 竞价 / 板块资金 |
 | 利空门禁 | 人工「通过 / 未过」；有效期内才允许「可买入」 |
 | 纪律日记 | 告警留痕；可按关键词 / 级别检索 |
+| 盘面简报 | 同日多版本追加 + 批注/定稿（`market_briefs`；框架见 `knowledge/日终复盘.md`） |
 | 纪律知识库 | `knowledge/*.md` → **Milvus** 向量（产品路径，非可选项） |
 | 对话参谋 | LangGraph 多工具决策图 + HITL 补丁 |
 | 对话沉淀 | `memory_notes` 认知卡片 |
@@ -43,7 +44,7 @@ Jarvis 是**个人** A 股交易参谋数字员工，不是多租户 SaaS。
 | HTTP | `backend/app/api/` | FastAPI；行情 / 对话 / knowledge / services |
 | MCP | `backend/app/mcp/` | 官方 `mcp` FastMCP；`python -m app.mcp` |
 | Agent | `backend/app/agents/` | `chat.py` 入口 + `graph/` 决策图 |
-| 服务 | `backend/app/services/` | journal / positions / analyses / codes / quotes / memory / patches / knowledge / rag |
+| 服务 | `backend/app/services/` | journal / positions / analyses / codes / quotes / screen / review / memory / patches / knowledge / rag / conversations / auth |
 | 横切 | `backend/app/core/` | config / deps |
 | 领域 | `backend/app/domain/` | 代码规范化、沉淀模型 |
 | 基础设施 | `backend/app/infrastructure/` | `persistence/*_store` + identity(RBAC) / kb(Milvus) / market / llm |
@@ -80,7 +81,7 @@ MCP Server 是 **stdio 进程**：Cursor 需要时自动启动。
 | 谁启动 | 你执行 `start.sh` | Cursor 配置后自动拉起 |
 | 是否常驻 | 是 | 通常否（stdio） |
 | 用途 | 仪表盘 + 站内对话 | 外部 Agent 调同一套 services |
-| 写入 | 对话补丁需 HITL 确认 | MCP 写入工具会直接改本地，仅可信环境 |
+| 写入 | 对话补丁需 HITL；日记/简报等面板按钮可直接写 | MCP 写入工具会直接改本地，仅可信环境 |
 
 ---
 
@@ -95,6 +96,7 @@ MCP Server 是 **stdio 进程**：Cursor 需要时自动启动。
 | 能力 | 站内对话 | MCP / invoke |
 |------|----------|--------------|
 | 加标的 / 加改删持仓 / patch / 沉淀 | 先 patch，用户点确认 | 可直接 `invoke`，视为已授权 |
+| 纪律日记 / 盘面简报 | 面板按钮直接写业务表（不经对话 HITL） | 若暴露则按 MCP 直接写，仅可信环境 |
 | 知识库 Markdown / 重建索引 | 管理员网页「知识库」直接改文件 | MCP `save_kb_document` / `reindex_knowledge` 直接写 |
 
 禁止在回答里声称「已写入」而未走确认（站内对话）。
@@ -129,8 +131,8 @@ api patches/apply      → services.patches
 
 ## 六、前端约定
 
-- 页面：`views/WorkspaceView.vue` / `StocksView.vue`；日记：`JournalPanel.vue`
-- 对话抽屉：`ChatPanel.vue`；Markdown 渲染助手回复
+- 页面：`views/WorkspaceView.vue` / `StocksView.vue`；日记：`JournalPanel.vue`；盘面简报：`ReviewPanel.vue`
+- 对话抽屉：`ChatPanel.vue`（左侧会话历史 + 补丁 HITL）；Markdown 渲染助手回复
 - 知识库页：`KnowledgePanel.vue`（管理员 `kb.manage`）
 - API：`frontend/src/api/index.js`，baseURL `/api`，登录头 `x-jarvis-token`
 - 深色 / 浅色主题；自选卡片 / 列表；Element 主要用于 dialog/table

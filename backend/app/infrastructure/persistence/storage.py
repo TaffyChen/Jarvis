@@ -87,8 +87,43 @@ def _connect():
         database=settings.mysql_database,
         charset="utf8mb4",
         autocommit=True,
-        cursorclass=pymysql.cursors.DictCursor,
+        cursorclass=_cursor_class(),
     )
+
+
+def _cursor_class():
+    import pymysql
+
+    if not settings.mysql_sql_log:
+        return pymysql.cursors.DictCursor
+
+    class LoggingDictCursor(pymysql.cursors.DictCursor):
+        def execute(self, query, args=None):
+            _log_sql(query, args)
+            return super().execute(query, args)
+
+        def executemany(self, query, args):
+            _log_sql(query, args, many=True)
+            return super().executemany(query, args)
+
+    return LoggingDictCursor
+
+
+def _log_sql(query: Any, args: Any = None, *, many: bool = False) -> None:
+    sql = " ".join(str(query or "").split())
+    if len(sql) > 800:
+        sql = sql[:800] + "…"
+    tag = "SQL[many]" if many else "SQL"
+    if args is None:
+        print(f"[jarvis] {tag}: {sql}", flush=True)
+        return
+    try:
+        preview = repr(args)
+    except Exception:
+        preview = "<args>"
+    if len(preview) > 400:
+        preview = preview[:400] + "…"
+    print(f"[jarvis] {tag}: {sql} | args={preview}", flush=True)
 
 
 def _get_conn():

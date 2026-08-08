@@ -26,7 +26,22 @@
         <span v-else-if="info.ready" class="kb-ok">索引就绪</span>
       </div>
       <div class="kb-search-row">
-        <input v-model="trialQuery" class="kb-input" placeholder="试检索：例如 五灯 / 主升第一天 / 持仓预警" @keydown.enter="trialSearch" />
+        <div class="search-wrap kb-search-wrap">
+          <input
+            v-model="trialQuery"
+            class="search-input"
+            placeholder="试检索：例如 五灯 / 主升第一天 / 持仓预警"
+            @keydown.enter="trialSearch"
+          >
+          <button
+            v-if="trialQuery"
+            type="button"
+            class="search-clear"
+            title="清空"
+            aria-label="清空"
+            @click="trialQuery = ''; hits = []"
+          >×</button>
+        </div>
         <button class="btn" :disabled="searching || !trialQuery.trim()" @click="trialSearch">试检索</button>
       </div>
       <div v-if="hits.length" class="kb-hits">
@@ -356,7 +371,8 @@ onMounted(reload)
 .kb-ok { color: var(--green); }
 .kb-warn { color: var(--orange); font-weight: 600; }
 .kb-actions { display: flex; gap: 8px; flex-shrink: 0; }
-.kb-search-row { display: flex; gap: 8px; }
+.kb-search-row { display: flex; gap: 8px; align-items: center; }
+.kb-search-wrap { max-width: none; flex: 1; }
 .kb-input {
   flex: 1; min-width: 0;
   background: var(--chip-bg); color: var(--text);

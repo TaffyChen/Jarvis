@@ -51,8 +51,14 @@ class Settings(BaseSettings):
     mysql_user: str = "jarvis"
     mysql_password: str = ""
     mysql_database: str = "jarvis"
+    # 调试：在控制台打印 SQL（1/true 开启）
+    mysql_sql_log: bool = False
 
     quote_interval_sec: int = 15
+    # 板块资金：盯盘常用，单独频率（建议 20–45）
+    sector_flow_interval_sec: int = 30
+    # 海外 / 涨停池等较重接口
+    market_aux_interval_sec: int = 90
     kline_interval_sec: int = 300
 
     analysis_stale_days: int = 14

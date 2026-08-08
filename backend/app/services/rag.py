@@ -15,9 +15,11 @@ from app.infrastructure.market.service import market
 _CODE_RE = re.compile(r"(?:sh|sz)?\d{5,6}", re.I)
 _HOLD_KEYS = ("持有", "减仓", "清仓", "仓位", "还能", "要不要", "卖", "买", "加仓")
 _MAIN_KEYS = ("主升", "冰点", "第一天")
-_MOOD_KEYS = ("情绪", "五灯", "市场", "灯")
+_MOOD_KEYS = ("情绪", "五灯", "市场", "灯", "冰点", "退潮", "高潮", "发酵")
 _RISK_KEYS = ("利空", "门禁", "复核", "风险")
 _REVIEW_KEYS = ("复盘", "日终", "资金故事", "验证窗口")
+_TREND_KEYS = ("趋势", "波段", "趋势波段", "野人", "养家", "量价", "洗盘", "吸筹", "出货", "回踩", "资金共振", "策略选股")
+_VOLUME_KEYS = ("吸筹", "洗盘", "拉升", "出货", "量价")
 
 
 def expand_retrieval_queries(question: str, history: list[dict] | None = None) -> list[str]:
@@ -48,10 +50,14 @@ def expand_retrieval_queries(question: str, history: list[dict] | None = None) -
     extra = ""
     if any(k in q for k in _HOLD_KEYS):
         extra = "持仓预警 五灯仓位 利空门禁"
+    elif any(k in q for k in _VOLUME_KEYS):
+        extra = "情绪周期与量价假说 量价与主力行为"
+    elif any(k in q for k in _TREND_KEYS):
+        extra = "趋势波段策略 趋势回踩策略 资金共振策略 盘后选股与竞价异动"
     elif any(k in q for k in _MAIN_KEYS):
-        extra = "主升第一天"
+        extra = "主升第一天 情绪周期与量价假说"
     elif any(k in q for k in _MOOD_KEYS):
-        extra = "市场情绪四条件 五灯仓位"
+        extra = "市场情绪四条件 五灯仓位 情绪周期与量价假说"
     elif any(k in q for k in _RISK_KEYS):
         extra = "三原则两防线 评分与分类 利空"
     elif any(k in q for k in _REVIEW_KEYS):

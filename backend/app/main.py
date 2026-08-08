@@ -22,25 +22,48 @@ from app.core.config import ROOT, settings
 from app.infrastructure.kb.index import ensure_kb_ready
 from app.infrastructure.persistence.identity import init_identity, resolve_session
 from app.infrastructure.persistence.storage import init_storage
-from app.services.quotes import refresh_klines, refresh_quotes
+from app.services.quotes import (
+    refresh_klines,
+    refresh_market_aux,
+    refresh_quotes,
+    refresh_sector_flow,
+)
 
 
 async def _quote_loop():
     while True:
+        await asyncio.sleep(settings.quote_interval_sec)
         try:
             await refresh_quotes()
         except Exception as e:
             print("[quotes]", e)
-        await asyncio.sleep(settings.quote_interval_sec)
+
+
+async def _sector_flow_loop():
+    while True:
+        await asyncio.sleep(max(15, int(settings.sector_flow_interval_sec)))
+        try:
+            await refresh_sector_flow()
+        except Exception as e:
+            print("[sector-flow]", e)
+
+
+async def _market_aux_loop():
+    while True:
+        await asyncio.sleep(max(30, int(settings.market_aux_interval_sec)))
+        try:
+            await refresh_market_aux()
+        except Exception as e:
+            print("[market-aux]", e)
 
 
 async def _kline_loop():
     while True:
+        await asyncio.sleep(settings.kline_interval_sec)
         try:
             await refresh_klines()
         except Exception as e:
             print("[klines]", e)
-        await asyncio.sleep(settings.kline_interval_sec)
 
 
 @asynccontextmanager
@@ -52,11 +75,24 @@ async def lifespan(app: FastAPI):
     kb = ensure_kb_ready()
     print(f"[kb] {kb}", flush=True)
     await refresh_quotes()
+    await refresh_sector_flow()
+    await refresh_market_aux()
     asyncio.create_task(refresh_klines())
     qtask = asyncio.create_task(_quote_loop())
+    sftask = asyncio.create_task(_sector_flow_loop())
+    atask = asyncio.create_task(_market_aux_loop())
     ktask = asyncio.create_task(_kline_loop())
+    print(
+        f"[poll] quotes={settings.quote_interval_sec}s "
+        f"sector_flow={settings.sector_flow_interval_sec}s "
+        f"aux={settings.market_aux_interval_sec}s "
+        f"klines={settings.kline_interval_sec}s",
+        flush=True,
+    )
     yield
     qtask.cancel()
+    sftask.cancel()
+    atask.cancel()
     ktask.cancel()
 
 

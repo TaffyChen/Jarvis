@@ -9,17 +9,78 @@ import {
   makeSparkline,
   ratingClassOf,
 } from '../utils/strategy'
+import { matchStockQuery, pinyinFull, pinyinInitials } from '../utils/match'
 import {
   computeAlerts,
   computeConditions,
   computeLamps,
   computeMainRise,
+  computeSentimentBrief,
+  computeDailyAdvice,
+  computeVolumePhase,
+  buildCardReason,
   effectiveRating,
   effectivePositionRec,
   positionRiskLevels,
+  maxHighSinceBuy,
+  isStrongTrend,
   toggleLeverOverride,
   toggleMainRiseIce,
 } from '../utils/signals'
+
+/** 会话级 UI 状态（F5 不丢当前页/搜索/板块/对话开关；定时刷新不碰这些字段） */
+const UI_STATE_KEY = 'jarvis-ui-state'
+const UI_VIEWS = new Set([
+  'market', 'stocks', 'sectorFlow', 'screen', 'auction', 'journal', 'review', 'knowledge',
+])
+
+function loadUiState() {
+  try {
+    const raw = sessionStorage.getItem(UI_STATE_KEY)
+    if (!raw) return {}
+    const o = JSON.parse(raw)
+    return o && typeof o === 'object' ? o : {}
+  } catch {
+    return {}
+  }
+}
+
+export function persistUiState(partial) {
+  try {
+    const prev = loadUiState()
+    sessionStorage.setItem(UI_STATE_KEY, JSON.stringify({ ...prev, ...partial }))
+  } catch {
+    /* ignore */
+  }
+}
+
+const _ui = loadUiState()
+
+function itemFromCode(code, quotes, analyses, positions) {
+  const q = quotes?.[code] || {}
+  const a = analyses?.[code] || {}
+  const pos = positions?.[code]
+  const isEtf = /^(sh5|sz1)/i.test(code) || a.type === 'etf'
+  const name = q.name || a.name || pos?.name || code
+  return {
+    code,
+    rawCode: code.replace(/^(sh|sz)/i, ''),
+    name,
+    pyInitials: pinyinInitials(name),
+    pyFull: pinyinFull(name),
+    type: isEtf ? 'etf' : 'stock',
+    rating: a.ratingManual === '排除' ? '排除' : (a.rating || null),
+    autoRating: true,
+    reason: a.reason || '',
+    notes: a.notes || '',
+    analysis: a.analysis || [],
+    etf: a.etf || null,
+    riskOk: a.riskOk,
+    reviewedAt: a.reviewedAt,
+    sector: getSector(code),
+    industry: (quotes?.[code] || {}).industry || '',
+  }
+}
 
 function buildItems(quotes, analyses, positions) {
   const codes = new Set([
@@ -27,32 +88,31 @@ function buildItems(quotes, analyses, positions) {
     ...Object.keys(analyses || {}),
     ...Object.keys(positions || {}),
   ])
-  return [...codes].map((code) => {
-    const q = quotes[code] || {}
-    const a = analyses[code] || {}
-    const isEtf = /^(sh5|sz1)/i.test(code) || a.type === 'etf'
-    return {
-      code,
-      rawCode: code.replace(/^(sh|sz)/i, ''),
-      name: q.name || a.name || code,
-      type: isEtf ? 'etf' : 'stock',
-      rating: a.ratingManual === '排除' ? '排除' : (a.rating || null),
-      autoRating: true,
-      reason: a.reason || '',
-      notes: a.notes || '',
-      analysis: a.analysis || [],
-      etf: a.etf || null,
-      riskOk: a.riskOk,
-      reviewedAt: a.reviewedAt,
-      sector: getSector(code),
-    }
-  })
+  return [...codes].map((code) => itemFromCode(code, quotes, analyses, positions))
 }
 
 export const useDashboardStore = defineStore('dashboard', {
   state: () => ({
     quotes: {},
     indices: {},
+    marketTurnover: {
+      amountYi: null,
+      deltaYi: null,
+      ready: false,
+      source: '',
+      note: '',
+    },
+    sentimentHistory: {
+      day: null,
+      temp: null,
+      iceBand: 35,
+      boilBand: 78,
+      range: '1m',
+      rangeLabel: '近一月',
+      points: [],
+      heightPoints: [],
+      note: '',
+    },
     klines: {},
     positions: {},
     analyses: {},
@@ -60,22 +120,26 @@ export const useDashboardStore = defineStore('dashboard', {
     breadth: { up: 0, down: 0, flat: 0, total: 0 },
     marketBreadth: { up: 0, down: 0, flat: 0, total: 0, source: '' },
     overseas: null,
-    limitUpStats: { zt: 0, zb: 0, dt: 0, maxDays: 0, topSector: '', source: '' },
+    limitUpStats: {
+      zt: 0, zb: 0, dt: 0, maxDays: 0, topSector: '', ladder: {},
+      breakRate: null, yestPremium: null, promoteRate: null, bigDrawdown: 0, yestLoss: 0, source: '',
+    },
     lastUpdate: null,
     staleDays: ANALYSIS_STALE_DAYS,
     health: null,
     loading: false,
     error: '',
-    filter: 'all',
-    sector: 'all',
-    search: '',
-    view: 'stocks',
-    chatOpen: false,
+    filter: ['all', 'buy', 'watch', 'nochase', 'hold', 'exclude'].includes(_ui.filter) ? _ui.filter : 'all',
+    sector: typeof _ui.sector === 'string' && _ui.sector ? _ui.sector : 'all',
+    search: typeof _ui.search === 'string' ? _ui.search : '',
+    view: UI_VIEWS.has(_ui.view) ? _ui.view : 'market',
+    chatOpen: !!_ui.chatOpen,
     strategyOpen: false,
     positionOpen: false,
     addOpen: false,
     signalTick: 0,
     screenResults: [],
+    screenTrendResults: [],
     screenMeta: null,
     screenLoading: false,
     auctionResults: [],
@@ -87,15 +151,19 @@ export const useDashboardStore = defineStore('dashboard', {
         positiveCount: 0,
         negativeCount: 0,
         total: 0,
+        divergenceCount: 0,
         topSector: null,
         topNetInflow: 0,
         topChangePct: 0,
+        topStrengthSector: null,
+        topStrength: 0,
         bottomSector: null,
         bottomNetInflow: 0,
         bottomChangePct: 0,
       },
       list: [],
       source: '',
+      disclaimer: '',
       lastUpdate: null,
     },
   }),
@@ -129,6 +197,12 @@ export const useDashboardStore = defineStore('dashboard', {
     positionRec() {
       return effectivePositionRec(this.ctx)
     },
+    sentimentBrief() {
+      return computeSentimentBrief({ ...this.ctx, lamps: this.lamps })
+    },
+    dailyAdvice() {
+      return computeDailyAdvice({ ...this.ctx, lamps: this.lamps }, this.sectorFlow)
+    },
     alerts() {
       return computeAlerts(this.ctx)
     },
@@ -137,10 +211,11 @@ export const useDashboardStore = defineStore('dashboard', {
     },
     tabCounts() {
       const counts = { all: 0, buy: 0, watch: 0, nochase: 0, hold: 0, exclude: 0 }
+      // 持仓角标与「持仓管理」对齐：直接数 positions，不依赖观察池条目是否齐全
+      counts.hold = Object.keys(this.positions || {}).length
       this.items.forEach((item) => {
         counts.all++
         const rating = effectiveRating(item, this.ctx)
-        if (this.positions[item.code]) counts.hold++
         if (rating === '可买入') counts.buy++
         if (rating === '观察' || rating === '持仓') counts.watch++
         if (rating === '不追' || rating === '不买') counts.nochase++
@@ -157,12 +232,21 @@ export const useDashboardStore = defineStore('dashboard', {
     },
     cards() {
       const ctx = this.ctx
-      let list = this.items.map((item) => {
+      // 持仓 Tab：以 positions 为源，避免观察池/行情缺码时漏掉（与持仓管理一致）
+      const sourceItems = this.filter === 'hold'
+        ? Object.keys(this.positions || {}).map((code) =>
+          itemFromCode(code, this.quotes, this.analyses, this.positions))
+        : this.items
+      let list = sourceItems.map((item) => {
         const q = this.quotes[item.code] || {}
         const k = this.klines[item.code] || {}
         const a = this.analyses[item.code] || {}
         const pos = this.positions[item.code]
-        const score = liveScoreFrom(q, k)
+        const score = liveScoreFrom(q, k, {
+          code: item.code,
+          sector: item.sector,
+          industry: q.industry || item.industry || '',
+        })
         const rating = effectiveRating(item, ctx)
         const displayScore = score != null ? score : 0
         const stale = isAnalysisStale(a, this.staleDays)
@@ -176,9 +260,14 @@ export const useDashboardStore = defineStore('dashboard', {
           pnl = (q.price - pos.buyPrice) * pos.shares
           pnlPct = pos.buyPrice > 0 ? (q.price - pos.buyPrice) / pos.buyPrice * 100 : 0
         }
-        const levels = pos ? positionRiskLevels(pos, q.price) : null
+        const levels = pos ? positionRiskLevels(pos, q.price, {
+          code: item.code,
+          name: item.name,
+          maxHigh: maxHighSinceBuy(k, pos) || q.price,
+          strongTrend: isStrongTrend(k),
+        }) : null
         const rawScoreRating = score != null ? (score >= 60 ? '可买入' : null) : null
-        return {
+        const base = {
           ...item,
           q,
           k,
@@ -197,7 +286,20 @@ export const useDashboardStore = defineStore('dashboard', {
           levels,
           pnl,
           pnlPct,
-          gateBlocked: rawScoreRating === '可买入' && rating === '观察',
+          gateBlocked: rawScoreRating === '可买入' && (rating === '观察' || rating === '不追'),
+          gateReason: rawScoreRating === '可买入' && rating !== '可买入'
+            ? (rating === '不追' ? '偏离门禁' : '门禁拦截')
+            : '',
+        }
+        const hit = (this.dailyAdvice?.watchHits || []).find((h) => h.code === item.code)
+        const volumePhase = computeVolumePhase(q, k)
+        return {
+          ...base,
+          reasonLine: buildCardReason(base),
+          mainlineHit: hit || null,
+          mainlineTone: hit?.actionTone || '',
+          mainlineAction: hit?.action || '',
+          volumePhase,
         }
       })
 
@@ -209,34 +311,36 @@ export const useDashboardStore = defineStore('dashboard', {
         if (this.filter === 'exclude') return c.rating === '排除'
         return true
       })
-      if (this.sector !== 'all') list = list.filter((c) => c.sector === this.sector)
-      if (this.search) {
-        const q = this.search.toLowerCase()
-        list = list.filter((c) =>
-          c.name.toLowerCase().includes(q)
-          || c.code.toLowerCase().includes(q)
-          || c.sector.toLowerCase().includes(q))
+      const q = String(this.search || '').trim()
+      // 有搜索词时不套板块 chip，避免「chip 停在 PCB 时搜半导体」被误滤空
+      if (this.filter !== 'hold' && this.sector !== 'all' && !q) {
+        list = list.filter((c) => c.sector === this.sector)
       }
-      list.sort((a, b) => b.score - a.score)
+      if (q) {
+        list = list.filter((c) => matchStockQuery(c, q))
+      }
+      list.sort((a, b) => {
+        const pa = a.mainlineTone === 'ready' ? 2 : a.mainlineHit ? 1 : 0
+        const pb = b.mainlineTone === 'ready' ? 2 : b.mainlineHit ? 1 : 0
+        if (pb !== pa) return pb - pa
+        return b.score - a.score
+      })
       return list
     },
   },
-  actions: {
-    async refresh() {
-      this.loading = true
-      this.error = ''
+    actions: {
+    async refreshMarket({ quiet = false } = {}) {
+      if (!quiet) {
+        this.loading = true
+        this.error = ''
+      }
       try {
-        const [h, q, m, k, p, a, j, sf] = await Promise.all([
-          api.health().catch(() => null),
+        const [q, m, k, sf] = await Promise.all([
           api.quotes(),
           api.market(),
           api.klines(),
-          api.positions(),
-          api.analyses(),
-          api.journal().catch(() => ({ journal: [] })),
           api.sectorFlow().catch(() => null),
         ])
-        this.health = h
         this.quotes = q.quotes || {}
         this.breadth = q.breadth || this.breadth
         this.marketBreadth = q.marketBreadth || this.marketBreadth
@@ -244,12 +348,41 @@ export const useDashboardStore = defineStore('dashboard', {
         this.limitUpStats = q.limitUpStats || this.limitUpStats
         this.lastUpdate = q.lastUpdate
         this.indices = m.indices || {}
+        this.marketTurnover = m.marketTurnover || q.marketTurnover || this.marketTurnover
+        this.sentimentHistory = q.sentimentHistory || m.sentimentHistory || this.sentimentHistory
         this.klines = k.klines || {}
+        if (sf && Array.isArray(sf.list)) this.sectorFlow = sf
+      } catch (e) {
+        if (!quiet) this.error = e.message || '加载失败，请确认后端已启动'
+      } finally {
+        if (!quiet) this.loading = false
+      }
+    },
+    async refreshBusiness({ quiet = false } = {}) {
+      try {
+        const [h, p, a, j] = await Promise.all([
+          api.health().catch(() => null),
+          api.positions(),
+          api.analyses(),
+          api.journal().catch(() => ({ journal: [] })),
+        ])
+        this.health = h
         this.positions = p.positions || {}
         this.analyses = a.analyses || {}
         if (a.staleDays) this.staleDays = a.staleDays
         this.journal = j.journal || []
-        if (sf && Array.isArray(sf.list)) this.sectorFlow = sf
+      } catch (e) {
+        if (!quiet) this.error = e.message || '业务数据加载失败'
+      }
+    },
+    async refresh() {
+      this.loading = true
+      this.error = ''
+      try {
+        await Promise.all([
+          this.refreshMarket({ quiet: true }),
+          this.refreshBusiness({ quiet: true }),
+        ])
       } catch (e) {
         this.error = e.message || '加载失败，请确认后端已启动'
       } finally {
@@ -299,6 +432,7 @@ export const useDashboardStore = defineStore('dashboard', {
       try {
         const r = await api.screen()
         this.screenResults = r.results || []
+        this.screenTrendResults = r.trendResults || []
         this.screenMeta = r
       } finally {
         this.screenLoading = false
